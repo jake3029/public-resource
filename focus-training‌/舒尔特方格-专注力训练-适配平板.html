@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>舒尔特方格 · 专注力训练</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  :root {
+    --primary: #4f6ef7;
+    --primary-dark: #3b56d4;
+    --success: #22b573;
+    --danger: #e5484d;
+    --bg: #f5f7fb;
+    --card: #ffffff;
+    --text: #2b2f36;
+    --text-light: #8a919c;
+    --radius: 14px;
+    --shadow: 0 4px 16px rgba(40, 60, 120, 0.08);
+    --gap: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .container { max-width: 720px; margin: 0 auto; padding: 24px 16px 40px; }
+
+  h1 { text-align: center; font-size: 26px; margin: 12px 0 4px; }
+  .subtitle { text-align: center; color: var(--text-light); font-size: 14px; margin-bottom: 24px; }
+
+  /* 训练页隐藏标题，节约竖直空间 */
+  body.training h1,
+  body.training .subtitle { display: none; }
+
+  .page { display: none; animation: fadeIn .25s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  /* ---------- 首页：难度列表 ---------- */
+  .difficulty-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px; border-radius: 12px; margin-bottom: 12px;
+    border: 1px solid #eceff5; transition: box-shadow .2s, transform .2s;
+  }
+  .difficulty-item:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+  .diff-info .diff-name { font-size: 17px; font-weight: 600; }
+  .diff-info .diff-desc { font-size: 13px; color: var(--text-light); margin-top: 4px; }
+  .btn {
+    border: none; cursor: pointer; border-radius: 10px;
+    font-size: 15px; padding: 10px 22px; color: #fff;
+    background: var(--primary); transition: background .2s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--primary-dark); }
+  .btn.ghost { background: #eef1f8; color: var(--text); }
+  .btn.ghost:hover { background: #e2e7f3; }
+  .btn.small { padding: 7px 14px; font-size: 13px; }
+  .best-badge { font-size: 12px; color: var(--success); margin-left: 8px; }
+
+  /* ---------- 训练页 ---------- */
+  .train-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .train-top {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .train-info { text-align: center; }
+  .train-mode {
+    font-size: 13px; font-weight: 600; color: var(--text-light); margin-bottom: 2px;
+  }
+  .timer {
+    font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--primary); line-height: 1.15;
+  }
+  .progress-line { font-size: 13px; color: var(--text-light); margin-top: 2px; }
+  .feedback { font-size: 14px; height: 20px; line-height: 20px; margin-top: 6px; }
+  .feedback.ok { color: var(--success); }
+  .feedback.err { color: var(--danger); }
+
+  /* 棋盘：宽度由 CSS 自动约束，高度由格子 aspect-ratio 推导 */
+  .grid-board {
+    display: grid;
+    gap: var(--gap);
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    container-type: inline-size;   /* 供 cqw 字号计算 */
+    touch-action: manipulation;
+  }
+  .grid-cell {
+    aspect-ratio: 1 / 1;
+    display: flex; align-items: center; justify-content: center;
+    background: #eef1f8; border-radius: 10px;
+    font-weight: 600;
+    /* 兜底字号（不支持容器查询单位时生效） */
+    font-size: clamp(18px, 5vw, 30px);
+    /* 支持容器查询单位时：字号随格子宽度自适应 */
+    font-size: calc(38cqw / var(--n, 5));
+    cursor: pointer; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background .15s, color .15s, transform .1s;
+  }
+  .grid-cell:hover { background: #e2e7f3; }
+  .grid-cell:active { transform: scale(.95); }
+  .grid-cell.done { background: var(--success); color: #fff; cursor: default; }
+  .grid-cell.wrong { background: var(--danger); color: #fff; animation: shake .3s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+
+  /* ---------- 统计区 ---------- */
+  .stat-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  select {
+    padding: 8px 12px; border-radius: 8px; border: 1px solid #dfe3ec;
+    font-size: 14px; background: #fff; color: var(--text);
+  }
+  #chart { width: 100%; height: 340px; }
+  .chart-empty { text-align: center; color: var(--text-light); padding: 60px 0; font-size: 14px; }
+  .stat-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+  .stat-box { flex: 1; min-width: 120px; background: #f7f9fd; border-radius: 10px; padding: 12px; text-align: center; }
+  .stat-box .num { font-size: 20px; font-weight: 700; color: var(--primary); }
+  .stat-box .label { font-size: 12px; color: var(--text-light); margin-top: 4px; }
+  .record-list { margin-top: 14px; max-height: 200px; overflow-y: auto; font-size: 13px; }
+  .record-row {
+    display: flex; justify-content: space-between; padding: 8px 10px;
+    border-bottom: 1px solid #f0f2f7; color: #555c66;
+  }
+  .clear-btn-wrap { text-align: center; margin-top: 12px; }
+
+  /* =========================================================
+   * 横屏布局：平板横屏时屏幕矮、宽度富余，
+   * 训练页改为「左侧信息栏 + 右侧棋盘」，棋盘高度贴合视口
+   * ======================================================= */
+  @media (orientation: landscape) and (min-width: 700px) {
+    .container {
+      max-width: 1080px;
+      padding: 12px 16px 20px;
+    }
+    h1 { font-size: 21px; margin: 0 0 2px; }
+    .subtitle { font-size: 13px; margin-bottom: 14px; }
+    .card { padding: 16px; margin-bottom: 14px; }
+
+    /* ---- 训练页：左右分栏 ---- */
+    .train-card {
+      flex-direction: row;
+      align-items: center;
+      gap: 16px;
+    }
+    .train-panel {
+      display: flex;
+      flex-direction: column;
+      align-self: stretch;
+      flex: 0 0 148px;
+      width: 148px;
+      gap: 10px;
+    }
+    .train-top { flex-direction: column; gap: 8px; }
+    .train-top .btn { width: 100%; padding: 8px 10px; }
+    .train-info { margin: auto 0; }
+    .timer { font-size: 30px; }
+
+    /* 棋盘宽度同时受「可用宽度」和「视口高度」约束，保证完整可见不滚动 */
+    .grid-board {
+      flex: 0 1 auto;
+      width: min(100%, calc(100vh - 96px), 640px);
+      width: min(100%, calc(100dvh - 96px), 640px);
+      margin: 0 auto;
+    }
+
+    /* ---- 首页：难度列表两列排布，节省纵向空间 ---- */
+    #difficulty-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    #difficulty-list .difficulty-item { margin-bottom: 0; }
+    #chart { height: 260px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>舒尔特方格</h1>
+  <p class="subtitle">按 1 → N² 的顺序依次点击所有数字，越快越专注</p>
+
+  <!-- ===================== 首页 ===================== -->
+  <section id="page-home" class="page active">
+    <div class="card" id="difficulty-list"><!-- 由 JS 生成 --></div>
+    <div class="card">
+      <div class="stat-toolbar">
+        <strong>历史成绩与效率曲线</strong>
+        <div>
+          <select id="stat-size-filter"></select>
+          <button class="btn small" id="btn-calc">计算</button>
+        </div>
+      </div>
+      <div id="chart"></div>
+      <div class="stat-summary" id="stat-summary"></div>
+      <div class="record-list" id="record-list"></div>
+      <div class="clear-btn-wrap">
+        <button class="btn ghost small" id="btn-clear">清空全部记录</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 训练页 ===================== -->
+  <section id="page-train" class="page">
+    <div class="card train-card">
+      <div class="train-panel">
+        <div class="train-top">
+          <button class="btn ghost small" id="btn-back">← 返回首页</button>
+          <button class="btn ghost small" id="btn-restart">重新开始</button>
+        </div>
+        <div class="train-info">
+          <div class="train-mode" id="train-mode"></div>
+          <div class="timer" id="timer">0.00 s</div>
+          <div class="progress-line" id="progress-line"></div>
+          <div class="feedback" id="feedback"></div>
+        </div>
+      </div>
+      <div class="grid-board" id="board"></div>
+    </div>
+  </section>
+</div>
+
+<!-- 结果弹窗 -->
+<dialog id="result-dialog" style="border:none;border-radius:14px;padding:26px 34px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+  <h2 style="margin-bottom:10px">🎉 训练完成！</h2>
+  <p id="result-text" style="font-size:18px;color:var(--primary);font-weight:700;margin-bottom:20px"></p>
+  <button class="btn" id="btn-dialog-ok">确定</button>
+</dialog>
+
+<script>
+/* =========================================================
+ * 舒尔特方格 · 专注力训练
+ * 结构：CONFIG（规格配置，扩展新规格只需在此追加）
+ *       Storage（localStorage 读写）
+ *       Home（首页渲染）
+ *       Game（训练逻辑与计时）
+ *       Stats（统计与 ECharts 效率曲线）
+ * ======================================================= */
+
+/** 规格配置：新增难度（如 7x7）只需在此追加一项 */
+const CONFIG = [
+  { size: 3, name: "3 × 3（入门）", desc: "9 个数字 · 难度 ★" },
+  { size: 4, name: "4 × 4（进阶）", desc: "16 个数字 · 难度 ★★" },
+  { size: 5, name: "5 × 5（标准）", desc: "25 个数字 · 难度 ★★★" },
+  { size: 6, name: "6 × 6（挑战）", desc: "36 个数字 · 难度 ★★★★" },
+];
+
+const STORAGE_KEY = "schulte_records_v1";
+
+/* ---------------- Storage ---------------- */
+const Storage = {
+  getAll() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  },
+  add(record) {
+    const list = this.getAll();
+    list.push(record);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  },
+  clear() { localStorage.removeItem(STORAGE_KEY); },
+};
+
+/* ---------------- 工具 ---------------- */
+/** Fisher-Yates 洗牌，返回 1..n 的随机序列 */
+function shuffledNumbers(n) {
+  const arr = Array.from({ length: n }, (_, i) => i + 1);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function formatTime(ms) {
+  return (ms / 1000).toFixed(2) + " s";
+}
+
+function formatDateTime(ts) {
+  const d = new Date(ts);
+  const p = (x) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+const $ = (sel) => document.querySelector(sel);
+
+/* ---------------- 页面切换 ---------------- */
+function showPage(id) {
+  document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
+  $("#" + id).classList.add("active");
+  document.body.classList.toggle("training", id === "page-train");
+  // 布局切换后让图表重新适配尺寸
+  if (id === "page-home" && chartInstance) {
+    requestAnimationFrame(() => chartInstance.resize());
+  }
+}
+
+/* ---------------- Home：难度列表 ---------------- */
+function renderHome() {
+  const records = Storage.getAll();
+  const listEl = $("#difficulty-list");
+  listEl.innerHTML = "";
+  CONFIG.forEach((cfg) => {
+    const best = records
+      .filter((r) => r.size === cfg.size)
+      .reduce((min, r) => Math.min(min, r.durationMs), Infinity);
+    const bestBadge = isFinite(best)
+      ? `<span class="best-badge">最佳 ${formatTime(best)}</span>` : "";
+    const item = document.createElement("div");
+    item.className = "difficulty-item";
+    item.innerHTML = `
+      <div class="diff-info">
+        <div class="diff-name">${cfg.name}${bestBadge}</div>
+        <div class="diff-desc">${cfg.desc}</div>
+      </div>`;
+    const btn = document.createElement("button");
+    btn.className = "btn";
+    btn.textContent = "开始";
+    btn.addEventListener("click", () => Game.start(cfg.size));
+    item.appendChild(btn);
+    listEl.appendChild(item);
+  });
+}
+
+/* ---------------- Game：训练核心 ---------------- */
+const Game = {
+  size: 0,        // 当前规格 N
+  total: 0,       // 总数字数 N²
+  next: 1,        // 下一个应点击的数字
+  startAt: 0,     // 开始时间戳
+  timerId: null,  // 计时器句柄
+  running: false,
+
+  start(size) {
+    this.size = size;
+    this.total = size * size;
+    this.next = 1;
+    this.running = false;
+    this.startAt = 0;
+
+    $("#train-mode").textContent = `${size} × ${size} 模式`;
+    $("#feedback").textContent = "";
+    $("#feedback").className = "feedback";
+    this.renderBoard();
+    this.renderProgress();
+
+    showPage("page-train");
+    // 进入训练页即开始计时
+    this.running = true;
+    this.startAt = performance.now();
+    clearInterval(this.timerId);
+    this.timerId = setInterval(() => this.tick(), 50);
+  },
+
+  renderBoard() {
+    const board = $("#board");
+    board.style.gridTemplateColumns = `repeat(${this.size}, 1fr)`;
+    // --n 供 CSS 计算自适应字号：font-size: calc(38cqw / var(--n))
+    board.style.setProperty("--n", this.size);
+    board.innerHTML = "";
+    shuffledNumbers(this.total).forEach((num) => {
+      const cell = document.createElement("div");
+      cell.className = "grid-cell";
+      cell.textContent = num;
+      cell.dataset.num = num;
+      cell.addEventListener("click", () => this.onCellClick(cell, num));
+      board.appendChild(cell);
+    });
+  },
+
+  onCellClick(cell, num) {
+    if (!this.running || cell.classList.contains("done")) return;
+    const fb = $("#feedback");
+    if (num === this.next) {
+      cell.classList.add("done");
+      fb.textContent = `✓ 正确 ${num}`;
+      fb.className = "feedback ok";
+      this.next++;
+      this.renderProgress();
+      if (this.next > this.total) this.finish();
+    } else {
+      // 错误反馈：闪红 + 提示（不惩罚计时，保持训练节奏）
+      cell.classList.remove("wrong");
+      void cell.offsetWidth;          // 重置动画
+      cell.classList.add("wrong");
+      fb.textContent = `✗ 应点击 ${this.next}`;
+      fb.className = "feedback err";
+    }
+  },
+
+  renderProgress() {
+    const done = this.next - 1;
+    $("#progress-line").textContent = `进度：${done} / ${this.total}`;
+  },
+
+  tick() {
+    if (!this.running) return;
+    $("#timer").textContent = formatTime(performance.now() - this.startAt);
+  },
+
+  finish() {
+    this.running = false;
+    clearInterval(this.timerId);
+    const durationMs = Math.round(performance.now() - this.startAt);
+    $("#timer").textContent = formatTime(durationMs);
+
+    const record = {
+      size: this.size,
+      durationMs,
+      finishedAt: Date.now(),   // 完成时间
+    };
+    Storage.add(record);
+
+    $("#result-text").textContent =
+      `${this.size} × ${this.size} · 用时 ${formatTime(durationMs)}`;
+    $("#result-dialog").showModal();
+    renderHome();     // 刷新首页最佳成绩
+    renderStats();    // 刷新统计区
+  },
+
+  restart() { this.start(this.size); },
+  stop() {
+    this.running = false;
+    clearInterval(this.timerId);
+  },
+};
+
+/* ---------------- Stats：统计与效率曲线 ---------------- */
+let chartInstance = null;
+
+/** 当前筛选规格（all 表示全部） */
+function currentFilterSize() {
+  return $("#stat-size-filter").value === "all"
+    ? null : Number($("#stat-size-filter").value);
+}
+
+function filteredRecords() {
+  const size = currentFilterSize();
+  const all = Storage.getAll();
+  return size ? all.filter((r) => r.size === size) : all;
+}
+
+function renderStats() {
+  const records = filteredRecords();
+  const summaryEl = $("#stat-summary");
+  const listEl = $("#record-list");
+  const chartEl = $("#chart");
+
+  if (records.length === 0) {
+    summaryEl.innerHTML = "";
+    listEl.innerHTML = `<div class="chart-empty">暂无历史记录，先去首页完成一次训练吧</div>`;
+    if (chartInstance) { chartInstance.clear(); }
+    return;
+  }
+
+  /* ---- 汇总指标 ---- */
+  const times = records.map((r) => r.durationMs);
+  const avg = times.reduce((a, b) => a + b, 0) / times.length;
+  const best = Math.min(...times);
+  summaryEl.innerHTML = `
+    <div class="stat-box"><div class="num">${records.length}</div><div class="label">完成次数</div></div>
+    <div class="stat-box"><div class="num">${formatTime(best)}</div><div class="label">最佳用时</div></div>
+    <div class="stat-box"><div class="num">${formatTime(avg)}</div><div class="label">平均用时</div></div>`;
+
+  /* ---- 明细列表（最近在前） ---- */
+  listEl.innerHTML = [...records].reverse().map((r) => `
+    <div class="record-row">
+      <span>${r.size} × ${r.size}</span>
+      <span>${formatTime(r.durationMs)}</span>
+      <span>${formatDateTime(r.finishedAt)}</span>
+    </div>`).join("");
+
+  /* ---- 效率曲线（ECharts）----
+     计算方式：
+     1) 按完成时间先后排序，x 轴为第 N 次；
+     2) 柱状图为每次实际用时；
+     3) 折线为累计平均用时（第 i 次为止的均值），体现整体水平；
+     4) 再叠加一条滑动平均（窗口 5）趋势线，平滑反映进步/退步趋势。
+  */
+  const sorted = [...records].sort((a, b) => a.finishedAt - b.finishedAt);
+  const xData = sorted.map((_, i) => `第 ${i + 1} 次`);
+  const barData = sorted.map((r) => +(r.durationMs / 1000).toFixed(2));
+
+  let sum = 0;
+  const avgLine = sorted.map((_, i) => {
+    sum += sorted[i].durationMs;
+    return +(sum / (i + 1) / 1000).toFixed(2);
+  });
+
+  const windowSize = 5;
+  const trendLine = sorted.map((_, i) => {
+    const from = Math.max(0, i - windowSize + 1);
+    const slice = sorted.slice(from, i + 1);
+    return +(slice.reduce((s, r) => s + r.durationMs, 0) / slice.length / 1000).toFixed(2);
+  });
+
+  chartEl.style.display = "block";
+  if (!chartInstance) chartInstance = echarts.init(chartEl);
+  chartInstance.setOption({
+    tooltip: { trigger: "axis", valueFormatter: (v) => v + " s" },
+    legend: { data: ["每次用时", "累计平均", "滑动平均趋势"] },
+    grid: { left: 48, right: 20, top: 44, bottom: 36 },
+    xAxis: { type: "category", data: xData },
+    yAxis: { type: "value", name: "秒 (s)" },
+    series: [
+      { name: "每次用时", type: "bar", data: barData, itemStyle: { color: "#4f6ef7", borderRadius: [4, 4, 0, 0] } },
+      { name: "累计平均", type: "line", data: avgLine, smooth: true, symbol: "circle", lineStyle: { color: "#f5a623" }, itemStyle: { color: "#f5a623" } },
+      { name: "滑动平均趋势", type: "line", data: trendLine, smooth: true, lineStyle: { color: "#22b573", type: "dashed" }, itemStyle: { color: "#22b573" } },
+    ],
+  });
+}
+
+/* ---------------- 事件绑定 & 初始化 ---------------- */
+function initFilterOptions() {
+  const sel = $("#stat-size-filter");
+  sel.innerHTML = `<option value="all">全部规格</option>` +
+    CONFIG.map((c) => `<option value="${c.size}">${c.size} × ${c.size}</option>`).join("");
+  sel.addEventListener("change", renderStats);
+}
+
+$("#btn-calc").addEventListener("click", renderStats);
+$("#btn-clear").addEventListener("click", () => {
+  if (confirm("确定清空全部历史记录？此操作不可恢复。")) {
+    Storage.clear();
+    renderHome();
+    renderStats();
+  }
+});
+$("#btn-back").addEventListener("click", () => { Game.stop(); showPage("page-home"); });
+$("#btn-restart").addEventListener("click", () => Game.restart());
+$("#btn-dialog-ok").addEventListener("click", () => $("#result-dialog").close());
+
+window.addEventListener("resize", () => chartInstance && chartInstance.resize());
+window.addEventListener("orientationchange", () => {
+  setTimeout(() => chartInstance && chartInstance.resize(), 200);
+});
+
+initFilterOptions();
+renderHome();
+renderStats();
+</script>
+</body>
+</html>
