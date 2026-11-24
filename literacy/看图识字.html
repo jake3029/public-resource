@@ -1,0 +1,2481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>看图识字 · 儿童识字卡</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#FFF6EA;--card:#fff;--ink:#33302E;--muted:#9A9086;
+  --orange:#FF8A4C;--blue:#4FB8FF;--green:#7BD88F;--pink:#FF9EB5;--yellow:#FFD166;
+  --line:#F0E4D4;--radius:24px;--shadow:0 4px 0 rgba(0,0,0,.08);
+}
+html,body{margin:0;height:100%}
+body{
+  font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  background:var(--bg);color:var(--ink);user-select:none;overflow:hidden;
+}
+#app{display:flex;height:100vh}
+/* ===== 侧栏 ===== */
+#sidebar{
+  width:240px;flex:0 0 240px;background:#fff;border-right:2px solid var(--line);
+  padding:18px 14px;display:flex;flex-direction:column;gap:10px;
+}
+.logo{font-size:26px;font-weight:800;padding:10px 14px 16px;color:var(--orange);letter-spacing:2px}
+#nav{display:flex;flex-direction:column;gap:10px;flex:1}
+.nav-btn{
+  height:84px;border-radius:20px;display:flex;align-items:center;gap:14px;padding:0 20px;
+  font-size:22px;font-weight:700;background:#FFF9F0;color:#8A7F74;border:2px solid transparent;
+  cursor:pointer;transition:transform .16s,background .16s;font-family:inherit;
+}
+.nav-btn .ic{font-size:28px;line-height:1}
+.nav-btn:hover{transform:translateY(-2px)}
+.nav-btn:active{transform:scale(.96)}
+.nav-btn.active{background:var(--orange);color:#fff;box-shadow:var(--shadow)}
+.side-foot{padding-top:8px}
+.ghost-btn{
+  width:100%;height:56px;border-radius:16px;border:2px solid var(--line);background:#FFFDF8;
+  font-size:16px;font-weight:700;color:#8A7F74;cursor:pointer;font-family:inherit;
+}
+/* ===== 主区 ===== */
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+#topbar{height:84px;flex:0 0 84px;display:flex;align-items:center;gap:16px;padding:0 24px}
+.unit-pills{flex:1;display:flex;gap:10px;overflow-x:auto;padding:6px 2px;scrollbar-width:none}
+.unit-pills::-webkit-scrollbar{display:none}
+.pill{
+  height:56px;padding:0 22px;border-radius:28px;background:#fff;border:2px solid var(--line);
+  font-size:19px;font-weight:700;color:#8A7F74;white-space:nowrap;display:flex;align-items:center;
+  cursor:pointer;font-family:inherit;transition:.16s;
+}
+.pill:active{transform:scale(.96)}
+.pill.active{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:var(--shadow)}
+.avatar{
+  width:64px;height:64px;flex:0 0 64px;border-radius:50%;background:var(--yellow);
+  display:grid;place-items:center;font-size:30px;position:relative;cursor:pointer;
+}
+.avatar .ring{position:absolute;inset:-7px;border-radius:50%;background:none;pointer-events:none}
+.avatar.unlocked{box-shadow:0 0 0 4px var(--green)}
+#content{flex:1;overflow-y:auto;padding:6px 24px 28px;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column}
+#content::-webkit-scrollbar{width:10px}
+#content::-webkit-scrollbar-thumb{background:#EADCC8;border-radius:6px}
+/* ===== 学习页 ===== */
+.learn-wrap{max-width:960px;margin:0 auto;display:flex;flex-direction:column;flex:1;min-height:0;width:100%}
+.learn-progress{display:flex;align-items:center;gap:14px;font-size:17px;color:var(--muted);font-weight:700;padding:4px 4px 14px}
+.learn-progress b{color:var(--ink);font-size:19px}
+.bar{flex:1;height:12px;background:#F0E4D4;border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green);border-radius:6px;transition:width .3s}
+.learn-card{
+  flex:1;background:#fff;border-radius:32px;box-shadow:var(--shadow);display:flex;
+  align-items:center;gap:26px;padding:26px;min-height:0;
+}
+.learn-card .pic{
+  flex:0 0 45%;height:100%;display:grid;place-items:center;background:#FFF9F0;
+  border-radius:24px;cursor:pointer;overflow:hidden;
+}
+.learn-card .pic img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.img-missing{font-size:64px;color:#E0D3C2;font-weight:800}
+.word-side{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;min-width:0}
+.char{font-size:140px;font-weight:800;line-height:1.06;letter-spacing:4px;color:var(--ink)}
+.word-side.multi .char{font-size:80px;letter-spacing:2px}
+.pinyin{font-size:40px;color:var(--blue);font-weight:700;letter-spacing:2px;line-height:1.2}
+.word-tip{font-size:21px;color:var(--muted);margin-top:6px}
+.learn-actions{display:flex;gap:14px;padding-top:18px}
+.big-btn{
+  flex:1;height:88px;border-radius:24px;border:none;font-size:23px;font-weight:800;cursor:pointer;
+  background:#fff;color:#6B6157;box-shadow:var(--shadow);font-family:inherit;transition:.16s;
+}
+.big-btn:active{transform:scale(.96)}
+.big-btn.primary{background:var(--orange);color:#fff}
+.big-btn:disabled{opacity:.4;cursor:not-allowed}
+/* ===== 通用块 ===== */
+.panel{background:#fff;border-radius:24px;padding:20px 22px;box-shadow:var(--shadow);margin-bottom:18px}
+.panel h3{margin:0 0 16px;font-size:20px;display:flex;align-items:center;gap:8px}
+.panel .desc{color:var(--muted);font-size:15px;margin:-8px 0 14px;line-height:1.6}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row.center{justify-content:center;margin-top:18px}
+.row.end{justify-content:flex-end}
+.row.between{justify-content:space-between}
+.btn{
+  height:52px;padding:0 20px;border-radius:14px;border:2px solid var(--line);background:#FFF9F0;
+  font-size:17px;font-weight:700;color:#6B6157;cursor:pointer;font-family:inherit;transition:.16s;
+}
+.btn:active{transform:scale(.96)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:var(--orange);color:#fff;border-color:var(--orange)}
+.btn.ghost{background:#fff}
+.btn.danger{background:#fff;color:#E5484D;border-color:#FFD9DA}
+.btn.sm{height:42px;padding:0 14px;font-size:15px;border-radius:12px}
+.btn.tiny{height:34px;padding:0 10px;font-size:14px;border-radius:10px;border-width:2px}
+.field{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted);flex:1;min-width:130px}
+.field input,.field select{
+  height:46px;border:2px solid var(--line);border-radius:12px;padding:0 12px;font-size:17px;
+  font-family:inherit;color:var(--ink);background:#FFFDF8;min-width:0;
+}
+.field input:focus,.field select:focus{outline:none;border-color:var(--blue)}
+.drop{
+  border:3px dashed #F0D9BE;border-radius:20px;padding:30px 20px;text-align:center;color:var(--muted);
+  background:#FFFDF8;cursor:pointer;font-size:17px;transition:.16s;line-height:1.7;
+}
+.drop b{color:var(--orange);font-size:19px}
+.drop.over{border-color:var(--orange);background:#FFF3E6}
+/* ===== 空状态 / 引导 ===== */
+.empty{text-align:center;padding:52px 20px;color:var(--muted)}
+.empty .emoji{font-size:60px;line-height:1}
+.empty h3{font-size:24px;color:var(--ink);margin:14px 0 6px}
+.empty p{margin:0;font-size:17px}
+.guide{max-width:860px;margin:0 auto;text-align:center;padding:30px 10px}
+.guide h2{font-size:34px;margin:0 0 10px}
+.guide p.sub{color:var(--muted);font-size:18px;margin:0 0 32px;line-height:1.7}
+.guide .choices{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.guide .choice{
+  background:#fff;border-radius:24px;padding:26px 20px;box-shadow:var(--shadow);cursor:pointer;
+  border:3px solid transparent;transition:.16s;
+}
+.guide .choice:hover{transform:translateY(-3px);border-color:var(--orange)}
+.guide .choice .ic{font-size:44px}
+.guide .choice b{display:block;font-size:20px;margin:12px 0 6px}
+.guide .choice span{font-size:14px;color:var(--muted);line-height:1.5;display:block}
+/* ===== 弹层 ===== */
+.overlay{
+  position:fixed;inset:0;background:rgba(51,48,46,.5);display:grid;place-items:center;
+  z-index:50;padding:24px;overflow-y:auto;
+}
+.sheet{
+  background:#fff;border-radius:32px;padding:24px 26px;max-width:720px;width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,.22);max-height:92vh;overflow-y:auto;
+}
+.sheet.small{max-width:440px;text-align:center}
+.sheet.small h3{font-size:21px;margin:6px 0 22px;line-height:1.5}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.sheet-head h3{margin:0;font-size:22px}
+.hint{color:var(--muted);font-size:15px;text-align:center;margin:14px 0 0;line-height:1.6}
+/* ===== 田字格 ===== */
+.tian-wrap{display:grid;place-items:center;padding:6px 0 4px}
+.tian{
+  width:320px;height:320px;position:relative;border:2px solid #E8DCCB;border-radius:12px;
+  background:
+    linear-gradient(#E8DCCB,#E8DCCB) center/100% 1.5px no-repeat,
+    linear-gradient(#E8DCCB,#E8DCCB) center/1.5px 100% no-repeat,
+    #FFFDF8;
+  overflow:hidden;
+}
+.tian::before,.tian::after{
+  content:'';position:absolute;left:50%;top:50%;width:141%;border-top:1.5px dashed #F2E7D8;
+  transform-origin:center;pointer-events:none;
+}
+.tian::before{transform:translate(-50%,-50%) rotate(45deg)}
+.tian::after{transform:translate(-50%,-50%) rotate(-45deg)}
+.tian>*{position:relative;z-index:1}
+.hz-host{width:288px;height:288px;margin:14px}
+.static-char{
+  width:100%;height:100%;display:grid;place-items:center;font-size:200px;
+  color:#E8E8E8;font-weight:800;line-height:1;
+}
+.trace-tian canvas{display:block;width:100%;height:100%;touch-action:none}
+/* ===== 测验 ===== */
+.quiz-wrap{max-width:820px;margin:0 auto}
+.quiz-head{display:flex;align-items:center;gap:14px;font-size:17px;font-weight:700;color:var(--muted);padding:4px 4px 14px}
+.quiz-head .score{color:var(--orange)}
+.quiz-main{
+  background:#fff;border-radius:32px;box-shadow:var(--shadow);padding:26px;min-height:380px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+}
+.quiz-pic{
+  height:220px;max-width:100%;display:grid;place-items:center;background:#FFF9F0;
+  border-radius:24px;padding:14px;
+}
+.quiz-pic img{max-height:100%;max-width:420px;object-fit:contain}
+.quiz-ask{font-size:20px;color:var(--muted);font-weight:700}
+.speaker{
+  width:120px;height:120px;border-radius:50%;border:none;background:var(--blue);color:#fff;
+  font-size:52px;cursor:pointer;box-shadow:var(--shadow);
+}
+.speaker:active{transform:scale(.94)}
+.opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:560px}
+.opt{
+  height:104px;border-radius:22px;background:#FFFDF8;font-size:54px;font-weight:800;
+  border:3px solid var(--line);cursor:pointer;color:var(--ink);font-family:inherit;transition:.16s;
+}
+.opt:hover{border-color:var(--blue)}
+.opt:active{transform:scale(.96)}
+.opt.right{background:var(--green);color:#fff;border-color:var(--green)}
+.opt.wrong{background:var(--pink);color:#fff;border-color:var(--pink)}
+.result-big{font-size:56px;font-weight:800;color:var(--orange);line-height:1}
+.result-sub{font-size:20px;color:var(--muted)}
+/* ===== 统计 ===== */
+.stat-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:18px}
+.donut{width:180px;height:180px;border-radius:50%;display:grid;place-items:center;margin:0 auto}
+.donut .hole{
+  width:116px;height:116px;background:#fff;border-radius:50%;display:grid;place-items:center;
+  font-size:26px;font-weight:800;line-height:1.2;text-align:center;
+}
+.donut .hole small{display:block;font-size:13px;color:var(--muted);font-weight:700}
+.legend{display:flex;flex-direction:column;gap:8px;margin-top:16px;font-size:15px;color:#6B6157}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:8px}
+.bars{display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:10px}
+.bars .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
+.bars .col i{width:100%;max-width:40px;background:var(--blue);border-radius:8px 8px 4px 4px;min-height:4px;transition:height .3s}
+.bars .col span{font-size:12px;color:var(--muted);font-weight:700}
+.kpi{display:flex;gap:14px;flex-wrap:wrap}
+.kpi .box{flex:1;min-width:110px;background:#FFF9F0;border-radius:18px;padding:14px;text-align:center}
+.kpi .box b{display:block;font-size:30px;color:var(--orange);line-height:1.2}
+.kpi .box span{font-size:13px;color:var(--muted)}
+.weak-list{display:flex;flex-wrap:wrap;gap:10px}
+.weak{
+  display:flex;align-items:center;gap:8px;background:#FFF9F0;border-radius:14px;padding:8px 14px;
+  cursor:pointer;font-size:22px;font-weight:800;
+}
+.weak small{font-size:12px;color:var(--muted);font-weight:700}
+/* ===== 表格 ===== */
+.tb{width:100%;border-collapse:collapse;font-size:16px}
+.tb th,.tb td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.tb th{color:var(--muted);font-weight:700;font-size:13px;white-space:nowrap}
+.tb input{width:100%;height:40px;border:2px solid var(--line);border-radius:10px;padding:0 8px;font-size:16px;font-family:inherit;background:#FFFDF8;min-width:0}
+.tb img{width:52px;height:52px;object-fit:contain;border-radius:10px;background:#FFF9F0;display:block}
+.thum{width:52px;height:52px;border-radius:10px;background:#FFF9F0;display:grid;place-items:center;color:#D8C9B4;font-size:12px}
+/* ===== 提示 ===== */
+.toast{
+  position:fixed;left:50%;bottom:40px;transform:translate(-50%,20px);background:#33302E;color:#fff;
+  padding:14px 24px;border-radius:16px;font-size:17px;opacity:0;pointer-events:none;transition:.25s;
+  z-index:99;max-width:80vw;text-align:center;line-height:1.5;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.banner{
+  background:#FFE9E9;color:#C0392B;font-size:15px;padding:10px 24px;font-weight:700;
+  border-bottom:1px solid #FFD9DA;
+}
+@media (max-width:980px){
+  #sidebar{width:190px;flex-basis:190px}
+  .nav-btn{font-size:19px;height:76px}
+  .char{font-size:110px}
+  .learn-card{flex-direction:column;gap:16px}
+  .learn-card .pic{flex:none;width:100%;height:46%}
+  .stat-grid{grid-template-columns:1fr}
+  .guide .choices{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="logo">看图识字</div>
+    <nav id="nav"></nav>
+    <div class="side-foot">
+      <button class="ghost-btn" id="muteBtn">🔊 声音已开</button>
+    </div>
+  </aside>
+  <main id="main">
+    <div id="banner"></div>
+    <header id="topbar">
+      <div class="unit-pills" id="unitPills"></div>
+      <div class="avatar" id="avatar" title="长按 1.5 秒进入家长模式">
+        <span class="ring" id="ring"></span>
+        <span>👩</span>
+      </div>
+    </header>
+    <section id="content"></section>
+  </main>
+</div>
+<div id="toast" class="toast"></div>
+<div id="overlayRoot"></div>
+<script>
+/* ============================================================
+   看图识字 · 单文件应用
+   模块：Utils → Libs → DB → Image → Pinyin → Speech/Sfx
+        → State → Shell → Learn → Stroke → Trace
+   ============================================================ */
+
+/* ===================== 0. 基础工具 ===================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = (p = 'id') => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function el(html) {
+  const t = document.createElement('template');
+  t.innerHTML = html.trim();
+  return t.content.firstElementChild;
+}
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+}
+function dayKey(ts) {
+  const d = new Date(ts);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function pct(a, b) { return b ? Math.round(a / b * 100) : 0; }
+
+let toastTimer = null;
+function toast(msg, ms = 2200) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+/* ===================== 1. 依赖库加载 ===================== */
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.onload = () => res(true);
+    s.onerror = () => rej(new Error('load fail: ' + src));
+    document.head.appendChild(s);
+  });
+}
+async function loadLib(urls, timeout = 7000) {
+  for (const u of urls) {
+    try {
+      await Promise.race([
+        loadScript(u),
+        sleep(timeout).then(() => { throw new Error('timeout'); })
+      ]);
+      return true;
+    } catch (e) { /* 试下一个源 */ }
+  }
+  return false;
+}
+
+const LIBS = { hw: false, py: false };
+async function bootLibs() {
+  const [hw, pyOk] = await Promise.all([
+    loadLib([
+      'https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js',
+      'https://unpkg.com/hanzi-writer@3.5/dist/hanzi-writer.min.js'
+    ]),
+    loadLib([
+      'https://cdn.jsdelivr.net/npm/pinyin-pro@3/dist/index.js',
+      'https://unpkg.com/pinyin-pro@3/dist/index.js'
+    ])
+  ]);
+  LIBS.hw = hw && !!window.HanziWriter;
+  LIBS.py = pyOk && !!(window.pinyinPro || window.pinyin);
+}
+
+/* ===================== 2. IndexedDB ===================== */
+const DB_NAME = 'shizi-db';
+const DB = {
+  _db: null,
+  ok: false,
+  open() {
+    return new Promise((res, rej) => {
+      let req;
+      try { req = indexedDB.open(DB_NAME, 1); }
+      catch (e) { return rej(e); }
+      req.onupgradeneeded = (e) => {
+        const d = e.target.result;
+        if (!d.objectStoreNames.contains('units')) {
+          const s = d.createObjectStore('units', { keyPath: 'id' });
+          s.createIndex('order', 'order');
+        }
+        if (!d.objectStoreNames.contains('cards')) {
+          const s = d.createObjectStore('cards', { keyPath: 'id' });
+          s.createIndex('unitId', 'unitId');
+          s.createIndex('dueAt', 'dueAt');
+        }
+        if (!d.objectStoreNames.contains('images')) d.createObjectStore('images', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('strokeCache')) d.createObjectStore('strokeCache', { keyPath: 'char' });
+      };
+      req.onsuccess = () => { this._db = req.result; this.ok = true; res(this._db); };
+      req.onerror = () => rej(req.error);
+      req.onblocked = () => rej(new Error('数据库被其他标签页占用'));
+    });
+  },
+  _st(store, mode) {
+    if (!this._db) throw new Error('数据库不可用');
+    return this._db.transaction(store, mode).objectStore(store);
+  },
+  get(store, key) {
+    return new Promise((res, rej) => {
+      try {
+        const r = this._st(store, 'readonly').get(key);
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      } catch (e) { rej(e); }
+    });
+  },
+  getAll(store) {
+    return new Promise((res, rej) => {
+      try {
+        const r = this._st(store, 'readonly').getAll();
+        r.onsuccess = () => res(r.result || []);
+        r.onerror = () => rej(r.error);
+      } catch (e) { rej(e); }
+    });
+  },
+  put(store, val) {
+    return new Promise((res, rej) => {
+      try {
+        const t = this._db.transaction(store, 'readwrite');
+        t.objectStore(store).put(val);
+        t.oncomplete = () => res(true);
+        t.onerror = () => rej(t.error);
+      } catch (e) { rej(e); }
+    });
+  },
+  putMany(store, vals) {
+    return new Promise((res, rej) => {
+      try {
+        const t = this._db.transaction(store, 'readwrite');
+        const s = t.objectStore(store);
+        vals.forEach(v => s.put(v));
+        t.oncomplete = () => res(true);
+        t.onerror = () => rej(t.error);
+      } catch (e) { rej(e); }
+    });
+  },
+  del(store, key) {
+    return new Promise((res, rej) => {
+      try {
+        const t = this._db.transaction(store, 'readwrite');
+        t.objectStore(store).delete(key);
+        t.oncomplete = () => res(true);
+        t.onerror = () => rej(t.error);
+      } catch (e) { rej(e); }
+    });
+  },
+  clear(store) {
+    return new Promise((res, rej) => {
+      try {
+        const t = this._db.transaction(store, 'readwrite');
+        t.objectStore(store).clear();
+        t.oncomplete = () => res(true);
+        t.onerror = () => rej(t.error);
+      } catch (e) { rej(e); }
+    });
+  }
+};
+
+/* ===================== 3. 图片 ===================== */
+const urlCache = new Map();
+
+async function imgURL(imageId) {
+  if (!imageId) return '';
+  if (urlCache.has(imageId)) return urlCache.get(imageId);
+  try {
+    const rec = await DB.get('images', imageId);
+    if (!rec || !rec.blob) return '';
+    const u = URL.createObjectURL(rec.blob);
+    urlCache.set(imageId, u);
+    return u;
+  } catch (e) { return ''; }
+}
+
+function compressImage(file, maxSide = 1200, quality = 0.82) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    const u = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(u);
+      let w = img.naturalWidth, h = img.naturalHeight;
+      const scale = Math.min(1, maxSide / Math.max(w, h));
+      w = Math.round(w * scale); h = Math.round(h * scale);
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, w); c.height = Math.max(1, h);
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(b => b ? res(b) : rej(new Error('图片压缩失败')), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(u); rej(new Error('图片读取失败')); };
+    img.src = u;
+  });
+}
+
+/* 保存图片，返回 imageId。SVG 直接存，位图先压缩 */
+async function saveImage(file) {
+  let blob = file;
+  const isSvg = /svg/i.test(file.type) || /\.svg$/i.test(file.name || '');
+  if (!isSvg) {
+    if (file.size > 5 * 1024 * 1024) blob = await compressImage(file);
+    else {
+      const bmp = await (async () => {
+        try { return await compressImage(file, 1200, 0.9); } catch (e) { return file; }
+      })();
+      blob = bmp;
+    }
+  }
+  const id = uid('img');
+  await DB.put('images', { id, blob });
+  return id;
+}
+
+/* ===================== 4. 拼音 ===================== */
+function py(text) {
+  if (!text) return '';
+  try {
+    if (window.pinyinPro && window.pinyinPro.pinyin) return window.pinyinPro.pinyin(text, { toneType: 'symbol' });
+    if (window.pinyin) return window.pinyin(text);
+  } catch (e) { }
+  return '';
+}
+function pyPlain(text) {
+  if (!text) return '';
+  try {
+    if (window.pinyinPro && window.pinyinPro.pinyin) return window.pinyinPro.pinyin(text, { toneType: 'none' });
+    if (window.pinyin) return window.pinyin(text, { toneType: 'none' });
+  } catch (e) { }
+  return '';
+}
+/* 提取韵母：ping → ing，guo → uo，zhi → i */
+function finalOf(p) {
+  const s = String(p || '').toLowerCase().replace(/[^a-zü]/g, '');
+  const m = /([aeiouü]+(?:ng|n|r)?)$/.exec(s);
+  return m ? m[1] : '';
+}
+function initialOf(p) {
+  const s = String(p || '').toLowerCase().replace(/[^a-z]/g, '');
+  return s.slice(0, 2);
+}
+
+/* ===================== 5. 语音与音效 ===================== */
+const Speech = {
+  muted: false,
+  supported: typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window,
+  voices: [],
+  hasVoice: true,          /* 只在确实失败时才置 false，不再因 voices 为空就拒绝朗读 */
+  lastError: '',
+  rate: 0.75,
+  _token: 0,
+  _warmed: false,
+
+  init() {
+    try { this.rate = clamp(parseFloat(localStorage.getItem('speechRate') || '0.75') || 0.75, 0.5, 1.2); } catch (e) { }
+    if (!this.supported) { this.hasVoice = false; return; }
+    const load = () => {
+      try {
+        const vs = speechSynthesis.getVoices() || [];
+        if (vs.length) { this.voices = vs; this.hasVoice = true; }
+      } catch (e) { }
+    };
+    load();
+    try { speechSynthesis.onvoiceschanged = load; } catch (e) { }
+    [300, 1200, 3000].forEach(t => setTimeout(load, t));
+    /* 切到后台会打断 TTS，回来时清空，避免卡在"正在播放"状态 */
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this.stop(); });
+  },
+
+  chooseVoice() {
+    let vs = [];
+    try { vs = speechSynthesis.getVoices() || []; } catch (e) { vs = []; }
+    if (!vs.length) vs = this.voices || [];
+    return vs.find(v => /^zh[-_]CN/i.test(v.lang))
+      || vs.find(v => /^zh/i.test(v.lang))
+      || vs.find(v => /chinese|mandarin|中文|普通话/i.test((v.name || '') + ' ' + (v.lang || '')))
+      || null;
+  },
+
+  /* 部分安卓设备必须先"空读"一次才能唤醒语音引擎 */
+  warmUp() {
+    if (!this.supported || this._warmed) return;
+    this._warmed = true;
+    try {
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      u.lang = 'zh-CN';
+      u.rate = 1;
+      speechSynthesis.speak(u);
+    } catch (e) { }
+  },
+
+  _makeUtter(text, rate) {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN';            /* 关键：不强制绑定 voice，交给系统自选 */
+    u.rate = clamp(rate || this.rate, 0.5, 1.2);
+    u.pitch = 1;
+    u.volume = 1;
+    const v = this.chooseVoice();
+    if (v) { try { u.voice = v; } catch (e) { } }
+    u.onstart = () => { this.hasVoice = true; this.lastError = ''; };
+    u.onerror = (e) => { this.lastError = (e && e.error) || 'error'; };
+    return u;
+  },
+
+  speakAll(list, rate) {
+    if (this.muted) return true;
+    if (!this.supported) return false;
+    const texts = (list || []).map(t => String(t == null ? '' : t).trim()).filter(Boolean);
+    if (!texts.length) return true;
+    const token = ++this._token;
+    try { speechSynthesis.cancel(); } catch (e) { }
+    let i = 0;
+    const self = this;
+    const next = () => {
+      if (token !== self._token) return;
+      if (i >= texts.length) return;
+      const u = self._makeUtter(texts[i++], rate);
+      u.onend = () => setTimeout(next, 130);
+      try { speechSynthesis.speak(u); } catch (e) { self.lastError = String(e); }
+    };
+    /* 安卓上 cancel 后立刻 speak 会静默失败，必须让出一次事件循环 */
+    setTimeout(next, 90);
+    return true;
+  },
+
+  speakCard(card, rate) {
+    const word = card.word || '';
+    if (word && word !== card.char) return this.speakAll([word, card.char], rate);
+    return this.speakAll([card.char], rate);
+  },
+
+  stop() { this._token++; try { speechSynthesis.cancel(); } catch (e) { } },
+
+  failHint() {
+    const e = this.lastError;
+    if (!this.supported) return '这个浏览器不支持语音朗读，建议用 Chrome 或 Edge 打开';
+    if (e === 'not-allowed') return '浏览器拦截了播放，先点一下页面再试';
+    if (e === 'synthesis-failed' || e === 'language-unavailable' || e === 'voice-unavailable')
+      return '系统缺少可用的中文语音引擎，去「管理 → 语音自检」看解决办法';
+    return '没有检测到声音，去「管理 → 语音自检」排查';
+  },
+
+  test() {
+    return new Promise(res => {
+      if (!this.supported) return res({ started: false, error: 'unsupported' });
+      let done = false, started = false;
+      const finish = (err) => { if (done) return; done = true; res({ started, error: err || '' }); };
+      const u = this._makeUtter('你好，我是朗读小助手，现在可以开始识字了', 0.9);
+      u.onstart = () => { started = true; this.hasVoice = true; };
+      u.onend = () => finish('');
+      u.onerror = (e) => finish((e && e.error) || 'error');
+      try { speechSynthesis.cancel(); } catch (e) { }
+      setTimeout(() => { try { speechSynthesis.speak(u); } catch (e) { finish(String(e)); } }, 120);
+      setTimeout(() => finish(started ? '' : 'timeout'), 6000);
+    });
+  }
+};
+
+function voiceDiagnoseHTML(r) {
+  let vs = [];
+  try { vs = speechSynthesis.getVoices() || []; } catch (e) { }
+  const zh = vs.filter(v => /^zh/i.test(v.lang));
+  const pick = Speech.chooseVoice();
+  const row = (k, v) => `<tr><td style="color:#9A9086;white-space:nowrap;padding:6px 12px 6px 0">${k}</td><td style="padding:6px 0">${esc(v)}</td></tr>`;
+  return `<table class="tb" style="font-size:14px">
+    ${row('浏览器', (navigator.userAgent || '').replace(/\s+/g, ' ').slice(0, 120))}
+    ${row('语音接口', Speech.supported ? '支持' : '不支持')}
+    ${row('语音数量', String(vs.length))}
+    ${row('中文语音', zh.length ? zh.map(v => v.name + ' (' + v.lang + ')').join('；') : '系统未上报（安卓常见，仍可能可读）')}
+    ${row('实际选用', pick ? pick.name + ' (' + pick.lang + ')' : '系统默认')}
+    ${row('最近错误', Speech.lastError || '无')}
+    ${row('测试结果', r ? (r.started ? '已开始播放' : '没有开始播放') + (r.error ? '｜' + r.error : '') : '未测试')}
+  </table>`;
+}
+
+function voiceAdvice(r) {
+  if (!Speech.supported) return '当前浏览器没有语音合成能力，请改用 Chrome、Edge 或系统自带浏览器打开这个文件。';
+  if (r && r.started) return '语音能正常发声。如果还是听不到，请调高媒体音量、退出静音模式、断开蓝牙耳机后再试。';
+  if (r && r.error === 'not-allowed') return '浏览器拦截了播放。请先点一下页面空白处，再点「播放测试音」。';
+  if (vs_empty() && (!r || r.error === 'timeout')) {
+    return '浏览器没有检测到任何语音引擎。小米平板请依次检查：设置 → 更多设置 → 无障碍 → 文字转语音输出，看是否为空；为空请安装「Google 文字转语音」或「讯飞语记」，装好后回来自检。';
+  }
+  if (r && r.error === 'timeout') return '没有声音输出。请确认系统装了中文 TTS 引擎，且媒体音量不为 0。';
+  return '播放失败（' + ((r && r.error) || '未知') + '）。多半是系统语音引擎缺失，按上面的方法安装后重试。';
+}
+function vs_empty() {
+  try { return (speechSynthesis.getVoices() || []).length === 0; } catch (e) { return true; }
+}
+
+async function voiceCheck() {
+  const ov = showModal(`<div class="sheet">
+    <div class="sheet-head"><h3>🔈 语音自检</h3><button class="btn ghost sm" data-close>关闭</button></div>
+    <div id="vcBody">${voiceDiagnoseHTML(null)}</div>
+    <p class="hint" id="vcAdvice" style="text-align:left">点下面的按钮放一段测试音，看是否能听到。</p>
+    <div class="row center">
+      <button class="btn primary" id="vcRun">播放测试音</button>
+      <button class="btn" id="vcCopy">复制诊断信息</button>
+    </div>
+    <div class="row" style="margin-top:16px;align-items:center">
+      <span style="font-size:14px;color:var(--muted);white-space:nowrap">朗读语速</span>
+      <input type="range" id="vcRate" min="0.5" max="1.2" step="0.05" value="${Speech.rate}" style="flex:1">
+      <span id="vcRateVal" style="font-size:14px;font-weight:700;min-width:44px">${Speech.rate.toFixed(2)}×</span>
+    </div>
+  </div>`);
+  const close = () => { Speech.stop(); closeModal(ov); };
+  ov.querySelector('[data-close]').onclick = close;
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+
+  const rate = $('#vcRate', ov);
+  rate.oninput = () => {
+    Speech.rate = parseFloat(rate.value);
+    $('#vcRateVal', ov).textContent = Speech.rate.toFixed(2) + '×';
+    try { localStorage.setItem('speechRate', String(Speech.rate)); } catch (e) { }
+  };
+  rate.onchange = () => { Speech.warmUp(); Speech.speakAll(['语速调到' + Math.round(Speech.rate * 100) + '%']); };
+
+  $('#vcRun', ov).onclick = async () => {
+    Speech.warmUp();
+    $('#vcAdvice', ov).textContent = '正在播放…';
+    const r = await Speech.test();
+    $('#vcBody', ov).innerHTML = voiceDiagnoseHTML(r);
+    const adv = $('#vcAdvice', ov);
+    adv.textContent = voiceAdvice(r) + (r.started ? '（如果你没听到声音，见上）' : '');
+    adv.style.color = r.started ? 'var(--green)' : '#C0392B';
+  };
+  $('#vcCopy', ov).onclick = async () => {
+    const txt = voiceDiagnoseHTML(null).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    try { await navigator.clipboard.writeText(txt); toast('诊断信息已复制'); }
+    catch (e) { toast('复制失败，请手动截图'); }
+  };
+}
+
+const Sfx = {
+  ctx: null,
+  muted: false,
+  beep(freq, dur, type = 'sine', vol = 0.1, delay = 0) {
+    if (this.muted) return;
+    try {
+      if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const c = this.ctx;
+      if (c.state === 'suspended') c.resume();
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = type;
+      o.frequency.value = freq;
+      o.connect(g); g.connect(c.destination);
+      const t = c.currentTime + delay;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(vol, t + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.start(t); o.stop(t + dur + 0.03);
+    } catch (e) { }
+  },
+  click() { this.beep(660, 0.05, 'sine', 0.06); },
+  right() { [523, 659, 784].forEach((f, i) => this.beep(f, 0.09, 'sine', 0.1, i * 0.075)); },
+  wrong() { this.beep(220, 0.13, 'square', 0.07); },
+  win() { [523, 659, 784, 1047].forEach((f, i) => this.beep(f, 0.12, 'triangle', 0.09, i * 0.1)); }
+};
+
+/* ===================== 6. 全局状态 ===================== */
+const state = {
+  view: 'learn',
+  unitId: 'all',
+  units: [],
+  allCards: [],
+  cards: [],
+  learnIndex: 0,
+  parent: false,
+  quiz: null,
+  review: null
+};
+const DEFAULT_UNIT = { id: 'u_default', name: '未分组', color: '#9A9086', order: 0, createdAt: Date.now() };
+
+function unitName(id) {
+  const u = state.units.find(x => x.id === id);
+  return u ? u.name : '未分组';
+}
+function unitColor(id) {
+  const u = state.units.find(x => x.id === id);
+  return u ? u.color : '#9A9086';
+}
+
+/* ===================== 7. 数据装载 ===================== */
+async function loadUnits() {
+  let units = await DB.getAll('units');
+  if (!units.length) {
+    await DB.put('units', DEFAULT_UNIT);
+    units = [DEFAULT_UNIT];
+  }
+  units.sort((a, b) => (a.order || 0) - (b.order || 0));
+  state.units = units;
+}
+async function loadCards() {
+  const all = await DB.getAll('cards');
+  all.sort((a, b) => (a.order || 0) - (b.order || 0) || (a.createdAt || 0) - (b.createdAt || 0));
+  state.allCards = all;
+  state.cards = state.unitId === 'all' ? all.slice() : all.filter(c => c.unitId === state.unitId);
+  return state.cards;
+}
+
+/* ===================== 8. 外壳：导航 / 顶栏 / 头像 ===================== */
+const NAV_ITEMS = [
+  { k: 'learn', ic: '📖', t: '学习' },
+  { k: 'quiz', ic: '🎯', t: '测验' },
+  { k: 'review', ic: '🔁', t: '复习' },
+  { k: 'stats', ic: '📊', t: '报告' }
+];
+
+function renderNav() {
+  const items = NAV_ITEMS.slice();
+  if (state.parent) items.push({ k: 'admin', ic: '⚙️', t: '管理' });
+  const nav = $('#nav');
+  nav.innerHTML = items.map(it =>
+    `<button class="nav-btn ${state.view === it.k ? 'active' : ''}" data-go="${it.k}">
+       <span class="ic">${it.ic}</span><span>${it.t}</span>
+     </button>`).join('');
+  $$('[data-go]', nav).forEach(b => {
+    b.onclick = () => { go(b.dataset.go); };
+  });
+}
+
+function renderTopbar() {
+  const pills = $('#unitPills');
+  const list = [{ id: 'all', name: '全部', color: '#FF8A4C' }].concat(state.units);
+  pills.innerHTML = list.map(u => {
+    const active = state.unitId === u.id;
+    const style = active ? '' : `border-color:${u.color}55;color:${u.color}`;
+    return `<button class="pill ${active ? 'active' : ''}" data-unit="${u.id}" style="${style}">${esc(u.name)}
+      <span style="opacity:.6;font-size:14px;margin-left:8px">${u.id === 'all' ? state.allCards.length : state.allCards.filter(c => c.unitId === u.id).length}</span>
+    </button>`;
+  }).join('');
+  $$('[data-unit]', pills).forEach(b => {
+    b.onclick = () => {
+      state.unitId = b.dataset.unit;
+      state.learnIndex = 0;
+      state.quiz = null;
+      state.review = null;
+      Sfx.click();
+      render();
+    };
+  });
+  $('#avatar').classList.toggle('unlocked', state.parent);
+}
+
+function go(view) {
+  if (!state.parent && view === 'admin') { toast('请先长按右上角头像进入家长模式'); return; }
+  state.view = view;
+  if (view !== 'quiz') state.quiz = null;
+  if (view !== 'review') state.review = null;
+  Speech.stop();
+  Sfx.click();
+  render();
+}
+
+let idleTimer = null;
+function touchIdle() {
+  if (!state.parent) return;
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    state.parent = false;
+    if (state.view === 'admin') state.view = 'learn';
+    render();
+    toast('家长模式已自动锁定');
+  }, 5 * 60 * 1000);
+}
+
+function bindAvatar() {
+  const av = $('#avatar'), ring = $('#ring');
+  let raf = null, startAt = 0, done = false;
+  const reset = () => {
+    cancelAnimationFrame(raf);
+    ring.style.background = 'none';
+    done = false;
+  };
+  const tick = () => {
+    const p = clamp((performance.now() - startAt) / 1500, 0, 1);
+    ring.style.background = `conic-gradient(var(--orange) ${p * 360}deg, rgba(255,255,255,.35) 0)`;
+    if (p >= 1) {
+      if (!done) { done = true; unlockParent(); }
+      return;
+    }
+    raf = requestAnimationFrame(tick);
+  };
+  av.addEventListener('pointerdown', (e) => {
+    if (state.parent) { toast('家长模式已开启'); return; }
+    startAt = performance.now();
+    done = false;
+    tick();
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => av.addEventListener(ev, reset));
+}
+
+async function unlockParent() {
+  if (state.parent) return;
+  const pwd = localStorage.getItem('parentPwd');
+  if (pwd) {
+    const v = await inputBox('请输入家长密码', '4 位数字', true);
+    if (v === null) return;
+    if (v !== pwd) { toast('密码不对，再试一次'); return; }
+  }
+  state.parent = true;
+  $('#avatar').classList.add('unlocked');
+  touchIdle();
+  if (state.view !== 'admin') state.view = 'admin';
+  render();
+  toast('已进入家长模式，5 分钟无操作自动锁定');
+}
+
+/* ===================== 9. 通用弹层 ===================== */
+function showModal(html) {
+  const ov = el(`<div class="overlay">${html}</div>`);
+  $('#overlayRoot').appendChild(ov);
+  return ov;
+}
+function closeModal(ov) { if (ov && ov.parentNode) ov.remove(); }
+
+function confirmBox(msg, okText = '确定', cancelText = '取消') {
+  return new Promise(res => {
+    const ov = showModal(`<div class="sheet small">
+      <h3>${esc(msg)}</h3>
+      <div class="row center">
+        <button class="btn ghost" data-no>${esc(cancelText)}</button>
+        <button class="btn primary" data-yes>${esc(okText)}</button>
+      </div></div>`);
+    ov.querySelector('[data-yes]').onclick = () => { closeModal(ov); res(true); };
+    ov.querySelector('[data-no]').onclick = () => { closeModal(ov); res(false); };
+  });
+}
+
+function inputBox(title, placeholder = '', password = false) {
+  return new Promise(res => {
+    const ov = showModal(`<div class="sheet small">
+      <h3>${esc(title)}</h3>
+      <div class="field" style="text-align:left">
+        <input id="ibInput" type="${password ? 'password' : 'text'}" inputmode="${password ? 'numeric' : 'text'}" placeholder="${esc(placeholder)}" maxlength="8">
+      </div>
+      <div class="row center">
+        <button class="btn ghost" data-no>取消</button>
+        <button class="btn primary" data-yes>确定</button>
+      </div></div>`);
+    const inp = ov.querySelector('#ibInput');
+    setTimeout(() => inp.focus(), 60);
+    const ok = () => { const v = inp.value.trim(); closeModal(ov); res(v); };
+    ov.querySelector('[data-yes]').onclick = ok;
+    ov.querySelector('[data-no]').onclick = () => { closeModal(ov); res(null); };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok(); });
+    ov.addEventListener('click', e => { if (e.target === ov) { closeModal(ov); res(null); } });
+  });
+}
+
+/* ===================== 10. 路由渲染 ===================== */
+async function render() {
+  renderNav();
+  renderTopbar();
+  const c = $('#content');
+  c.scrollTop = 0;
+  try {
+    if (state.view === 'learn') await renderLearn(c);
+    else if (state.view === 'quiz') await renderQuiz(c);
+    else if (state.view === 'review') await renderReview(c);
+    else if (state.view === 'stats') await renderStats(c);
+    else if (state.view === 'admin') await renderAdmin(c);
+  } catch (e) {
+    console.error(e);
+    c.innerHTML = `<div class="empty"><div class="emoji">😵</div><h3>出了一点问题</h3><p>${esc(e.message || e)}</p></div>`;
+  }
+}
+
+/* ===================== 11. 学习页 ===================== */
+let cardTimer = null;
+
+async function renderLearn(root) {
+  await loadCards();
+
+  if (!state.allCards.length) { root.innerHTML = guideHTML(); bindGuide(root); return; }
+
+  if (!state.cards.length) {
+    root.innerHTML = `<div class="empty">
+      <div class="emoji">🗂️</div>
+      <h3>这个单元还没有字词</h3>
+      <p>在「管理」里添加，或点上方的「全部」看看</p>
+    </div>`;
+    return;
+  }
+
+  state.learnIndex = clamp(state.learnIndex, 0, state.cards.length - 1);
+  const card = state.cards[state.learnIndex];
+  const url = await imgURL(card.imageId);
+  const pinyin = card.pinyin || py(card.char);
+  const isWord = !!(card.word && card.word.length > 1);
+  const n = state.cards.length, i = state.learnIndex;
+
+  root.innerHTML = `
+  <div class="learn-wrap">
+    <div class="learn-progress">
+      <b>${i + 1} / ${n}</b>
+      <div class="bar"><i style="width:${((i + 1) / n * 100).toFixed(1)}%"></i></div>
+      <span>${esc(unitName(card.unitId))}</span>
+    </div>
+    <div class="learn-card" id="lcard">
+      <div class="pic" id="pic">
+        ${url ? `<img src="${url}" alt="${esc(card.word || card.char)}">` : `<div class="img-missing">?</div>`}
+      </div>
+      <div class="word-side ${isWord ? 'multi' : ''}" id="wside">
+        <div class="char">${esc(card.char)}</div>
+        <div class="pinyin">${esc(pinyin)}</div>
+        ${isWord ? `<div class="word-tip">词语：${esc(card.word)}</div>` : ''}
+      </div>
+    </div>
+    <div class="learn-actions">
+      <button class="big-btn" id="btnPrev" ${i === 0 ? 'disabled' : ''}>← 上一个</button>
+      <button class="big-btn" id="btnStroke">笔顺</button>
+      <button class="big-btn" id="btnTrace">描红</button>
+      <button class="big-btn primary" id="btnNext" ${i === n - 1 ? 'disabled' : ''}>下一个 →</button>
+    </div>
+  </div>`;
+
+  const speak = () => {
+    Sfx.click();
+    Speech.warmUp();
+    if (!Speech.supported) { toast('这个浏览器不支持语音，建议换 Chrome 或 Edge 打开'); return; }
+    if (Speech.muted) { toast('声音已关闭，点左下角打开'); return; }
+    Speech.speakCard(card);
+    setTimeout(() => {
+      if (Speech.lastError && /not-allowed|synthesis-failed|language-unavailable|voice-unavailable/i.test(Speech.lastError)) {
+        toast(Speech.failHint(), 3400);
+      }
+    }, 1400);
+  };
+  $('#pic').onclick = speak;
+  $('#wside').onclick = speak;
+  $('#btnPrev').onclick = () => { if (state.learnIndex > 0) { state.learnIndex--; render(); } };
+  $('#btnNext').onclick = () => { if (state.learnIndex < n - 1) { state.learnIndex++; render(); } };
+  $('#btnStroke').onclick = () => { Sfx.click(); openStroke(card); };
+  $('#btnTrace').onclick = () => { Sfx.click(); openTrace(card, render); };
+
+  /* 左右滑动切卡 */
+  let sx = 0, sy = 0;
+  const lc = $('#lcard');
+  lc.addEventListener('touchstart', e => {
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+  }, { passive: true });
+  lc.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (dx < 0 && state.learnIndex < n - 1) { state.learnIndex++; render(); }
+      if (dx > 0 && state.learnIndex > 0) { state.learnIndex--; render(); }
+    }
+  }, { passive: true });
+
+  /* 停留 1.5 秒计一次认读 */
+  clearTimeout(cardTimer);
+  cardTimer = setTimeout(() => {
+    card.viewCount = (card.viewCount || 0) + 1;
+    card.lastStudiedAt = Date.now();
+    DB.put('cards', card).catch(() => { });
+  }, 1500);
+}
+
+/* ===================== 12. 笔顺 ===================== */
+async function strokeDataLoader(char, onComplete, onError) {
+  try {
+    const cached = await DB.get('strokeCache', char).catch(() => null);
+    if (cached && cached.data) return onComplete(cached.data);
+    const urls = [
+      `https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/${encodeURIComponent(char)}.json`,
+      `https://unpkg.com/hanzi-writer-data@2.0/${encodeURIComponent(char)}.json`
+    ];
+    for (const u of urls) {
+      try {
+        const r = await fetch(u, { cache: 'force-cache' });
+        if (!r.ok) continue;
+        const d = await r.json();
+        DB.put('strokeCache', { char, data: d }).catch(() => { });
+        return onComplete(d);
+      } catch (e) { }
+    }
+    if (typeof onError === 'function') onError(new Error('笔画数据获取失败'));
+    else console.warn('笔画数据获取失败', char);
+  } catch (e) { onError(e); }
+}
+
+function openStroke(card) {
+  const ch = (card.char || '').slice(0, 1);
+  if (!ch) return;
+  const ov = showModal(`<div class="sheet">
+    <div class="sheet-head">
+      <h3>笔顺 · ${esc(ch)}${card.word && card.word !== ch ? `<span style="font-size:15px;color:var(--muted);margin-left:10px">（演示「${esc(ch)}」）</span>` : ''}</h3>
+      <button class="btn ghost sm" data-close>关闭</button>
+    </div>
+    <div class="tian-wrap"><div class="tian"><div class="hz-host" id="hzHost"></div></div></div>
+    <div class="row center">
+      <button class="btn primary" id="stPlay">▶ 播放</button>
+      <button class="btn" id="stStep">单步</button>
+      <button class="btn" id="stReset">重来</button>
+    </div>
+    <p class="hint" id="stHint">跟着笔画顺序，一起写一写</p>
+  </div>`);
+  const hint = ov.querySelector('#stHint');
+  const close = () => { Speech.stop(); closeModal(ov); };
+  ov.querySelector('[data-close]').onclick = close;
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+
+  if (!window.HanziWriter) {
+    ov.querySelector('#hzHost').innerHTML = `<div class="static-char">${esc(ch)}</div>`;
+    hint.textContent = '笔画动画需要联网加载笔画库，现在只显示字形，可以先描红。';
+    ['stPlay', 'stStep', 'stReset'].forEach(id => { const b = ov.querySelector('#' + id); if (b) b.disabled = true; });
+    return;
+  }
+
+  let writer = null;
+  let stepIdx = 0;
+  try {
+    writer = window.HanziWriter.create('hzHost', ch, {
+      width: 288,
+      height: 288,
+      padding: 6,
+      strokeColor: '#2B2B2B',
+      highlightColor: '#FF8A4C',
+      strokeAnimationSpeed: 0.9,
+      delayBetweenStrokes: 260,
+      highlightOnComplete: true,
+      charDataLoader: strokeDataLoader
+    });
+  } catch (e) {
+    hint.textContent = '笔顺初始化失败，已显示字形。';
+    ov.querySelector('#hzHost').innerHTML = `<div class="static-char">${esc(ch)}</div>`;
+    return;
+  }
+
+  ov.querySelector('#stPlay').onclick = () => {
+    Sfx.click(); Speech.speakAll([ch], 0.8);
+    try { writer.cancelQuiz && writer.cancelQuiz(); } catch (e) { }
+    try { writer.animateCharacter(); hint.textContent = '按顺序看一遍，再自己写'; } catch (e) { }
+  };
+  ov.querySelector('#stStep').onclick = () => {
+    Sfx.click();
+    try { writer.animateStroke(stepIdx); stepIdx = (stepIdx + 1) % 12; }
+    catch (e) { stepIdx = 0; try { writer.animateStroke(0); } catch (e2) { } }
+    hint.textContent = '一笔一笔看清楚';
+  };
+  ov.querySelector('#stReset').onclick = () => {
+    Sfx.click(); stepIdx = 0;
+    try { writer.cancelQuiz && writer.cancelQuiz(); writer.showOutline(); hint.textContent = '已重置'; } catch (e) { }
+  };
+}
+
+/* ===================== 13. 描红 ===================== */
+function openTrace(card, onSaved) {
+  const ch = (card.char || '').slice(0, 1);
+  if (!ch) return;
+  let color = '#FF8A4C';
+  const ov = showModal(`<div class="sheet">
+    <div class="sheet-head">
+      <h3>描红 · ${esc(ch)}</h3>
+      <button class="btn ghost sm" data-close>关闭</button>
+    </div>
+    <div class="tian-wrap"><div class="tian trace-tian"><canvas id="traceCanvas"></canvas></div></div>
+    <div class="row center">
+      ${['#FF8A4C', '#4FB8FF', '#7BD88F', '#FF9EB5'].map(c =>
+        `<button class="btn sm" data-color="${c}" style="background:${c};color:#fff;border-color:${c};width:56px;padding:0">●</button>`).join('')}
+    </div>
+    <div class="row center">
+      <button class="btn" id="trUndo">撤销一笔</button>
+      <button class="btn" id="trClear">清空</button>
+      <button class="btn" id="trReplay">回放</button>
+      <button class="btn primary" id="trSave">保存作品</button>
+    </div>
+    <p class="hint">用灰字当底，手指或触控笔沿着笔画描一遍</p>
+  </div>`);
+  const close = () => closeModal(ov);
+  ov.querySelector('[data-close]').onclick = close;
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+
+  const canvas = ov.querySelector('#traceCanvas');
+  const ctx = canvas.getContext('2d');
+  let W = 316, H = 316, dpr = window.devicePixelRatio || 1;
+  let strokes = [];   // [{color, points:[{x,y}]}]
+  let cur = null;
+
+  function sizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    W = rect.width || 316;
+    H = rect.height || 316;
+    dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function drawBase() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    ctx.fillStyle = '#E9E6E1';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const size = Math.min(W, H) * 0.66;
+    ctx.font = `800 ${size}px 'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif`;
+    ctx.fillText(ch, W / 2, H / 2 + size * 0.04);
+    ctx.restore();
+  }
+
+  function drawStroke(s) {
+    if (!s.points.length) return;
+    ctx.save();
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 16;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(s.points[0].x, s.points[0].y);
+    if (s.points.length === 1) {
+      ctx.lineTo(s.points[0].x + 0.1, s.points[0].y + 0.1);
+    } else {
+      for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function redrawAll() {
+    drawBase();
+    strokes.forEach(drawStroke);
+  }
+
+  setTimeout(() => { sizeCanvas(); redrawAll(); }, 30);
+
+  const pos = (e) => {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+    cur = { color, points: [pos(e)] };
+    strokes.push(cur);
+    drawStroke(cur);
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!cur) return;
+    e.preventDefault();
+    const p = pos(e);
+    const last = cur.points[cur.points.length - 1];
+    if (Math.hypot(p.x - last.x, p.y - last.y) < 1.5) return;
+    cur.points.push(p);
+    /* 只画增量，避免整页重绘闪烁 */
+    ctx.save();
+    ctx.strokeStyle = cur.color;
+    ctx.lineWidth = 16;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    ctx.restore();
+  });
+  const endStroke = () => { cur = null; };
+  canvas.addEventListener('pointerup', endStroke);
+  canvas.addEventListener('pointerleave', endStroke);
+  canvas.addEventListener('pointercancel', endStroke);
+
+  $$('[data-color]', ov).forEach(b => {
+    b.onclick = () => { color = b.dataset.color; Sfx.click(); };
+  });
+
+  ov.querySelector('#trUndo').onclick = () => {
+    Sfx.click();
+    strokes.pop();
+    redrawAll();
+  };
+  ov.querySelector('#trClear').onclick = () => {
+    Sfx.click();
+    strokes = [];
+    redrawAll();
+  };
+  ov.querySelector('#trReplay').onclick = async () => {
+    Sfx.click();
+    drawBase();
+    for (const s of strokes) {
+      for (let i = 0; i < s.points.length; i += 2) {
+        ctx.save();
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 16;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(s.points[Math.max(0, i - 1)].x, s.points[Math.max(0, i - 1)].y);
+        ctx.lineTo(s.points[i].x, s.points[i].y);
+        ctx.stroke();
+        ctx.restore();
+        await sleep(8);
+      }
+    }
+  };
+  ov.querySelector('#trSave').onclick = async () => {
+    Sfx.click();
+    try {
+      const data = canvas.toDataURL('image/jpeg', 0.8);
+      card.traceImage = data;
+      await DB.put('cards', card);
+      toast('作品已保存到这张卡');
+      if (typeof onSaved === 'function') onSaved();
+    } catch (e) {
+      toast('保存失败：' + (e.message || e));
+    }
+  };
+}
+/* ===================== 14. 测验 / 复习 ===================== */
+function buildOptions(main, pool) {
+  const others = pool.filter(c => c.id !== main.id);
+  const mf = finalOf(pyPlain(main.char));
+  const mi = initialOf(pyPlain(main.char));
+  const sameFinal = others.filter(c => mf && finalOf(pyPlain(c.char)) === mf);
+  const sameInit = others.filter(c => mi && initialOf(pyPlain(c.char)) === mi && !sameFinal.includes(c));
+  const rest = others.filter(c => !sameFinal.includes(c) && !sameInit.includes(c));
+
+  let picks = shuffle(sameFinal).slice(0, 3);
+  if (picks.length < 3) picks = picks.concat(shuffle(sameInit).slice(0, 3 - picks.length));
+  if (picks.length < 3) picks = picks.concat(shuffle(rest).slice(0, 3 - picks.length));
+  let guard = 0;
+  while (picks.length < 3 && others.length && guard++ < 20) picks.push(others[picks.length % others.length]);
+  return shuffle([main].concat(picks.slice(0, 3)));
+}
+
+function buildQuestions(pool, n) {
+  const list = [];
+  for (let i = 0; i < n; i++) {
+    const main = pool.length <= n ? pool[i % pool.length] : pool[Math.floor(Math.random() * pool.length)];
+    list.push({
+      card: main,
+      opts: buildOptions(main, pool.length >= 4 ? pool : state.allCards),
+      type: i % 2 === 0 ? 'pic' : 'sound'
+    });
+  }
+  return list;
+}
+
+async function updateCardStats(card, ok) {
+  const now = Date.now();
+  card.lastStudiedAt = now;
+  if (ok) {
+    card.correctCount = (card.correctCount || 0) + 1;
+    card.level = Math.min(5, (card.level || 0) + 1);
+    const gaps = [4 * 3600e3, 24 * 3600e3, 3 * 24 * 3600e3, 7 * 24 * 3600e3, 14 * 24 * 3600e3];
+    card.dueAt = now + gaps[Math.min(card.level, 4)];
+  } else {
+    card.wrongCount = (card.wrongCount || 0) + 1;
+    card.lastWrongAt = now;
+    card.level = Math.max(0, (card.level || 0) - 2);
+    const gaps = [10 * 60e3, 24 * 3600e3, 3 * 24 * 3600e3, 7 * 24 * 3600e3];
+    card.dueAt = now + gaps[Math.min(card.wrongCount - 1, 3)];
+  }
+  try { await DB.put('cards', card); } catch (e) { }
+}
+
+async function renderQuiz(root) {
+  await loadCards();
+  if (!state.allCards.length) { root.innerHTML = guideHTML(); bindGuide(root); return; }
+  if (!state.quiz || state.quiz.kind !== 'quiz') { root.innerHTML = quizStartHTML(); bindQuizStart(root); return; }
+  await paintQuestion(root);
+}
+
+function quizStartHTML() {
+  const total = state.cards.length;
+  const fresh = state.cards.filter(c => (c.level || 0) < 3).length;
+  return `<div class="quiz-wrap">
+    <div class="panel" style="text-align:center;padding:34px 24px">
+      <div style="font-size:54px">🎯</div>
+      <h3 style="justify-content:center;font-size:24px;margin:10px 0 6px">看图闯关</h3>
+      <p class="desc" style="margin:0 0 22px">每轮 10 题，看图选字和听音选字交替出现</p>
+      <div class="kpi" style="max-width:440px;margin:0 auto 8px">
+        <div class="box"><b>${total}</b><span>本范围字词</span></div>
+        <div class="box"><b>${fresh}</b><span>还没掌握</span></div>
+      </div>
+      <div class="row center">
+        <button class="btn primary" id="startQuizBtn" style="height:76px;font-size:23px;padding:0 46px">开始闯关</button>
+      </div>
+      <p class="hint">范围：${state.unitId === 'all' ? '全部字词' : esc(unitName(state.unitId))}</p>
+    </div>
+  </div>`;
+}
+
+function bindQuizStart(root) {
+  const b = $('#startQuizBtn', root);
+  if (b) b.onclick = async () => {
+    Sfx.click();
+    let pool = state.cards.filter(c => (c.level || 0) < 3);
+    if (pool.length < 4) pool = state.cards.slice();
+    if (pool.length < 4) { toast('至少需要 4 个字词才能闯关，先多添加几个吧'); return; }
+    state.quiz = {
+      kind: 'quiz', list: buildQuestions(pool, 10), idx: 0,
+      score: 0, combo: 0, correct: 0, wrong: [], locked: false, done: false
+    };
+    await render();
+  };
+}
+
+async function paintQuestion(root) {
+  const q = state.quiz;
+  if (q.done) { paintResult(root); return; }
+
+  const item = q.list[q.idx];
+  const card = item.card;
+  const url = await imgURL(card.imageId);
+  const total = q.list.length;
+  const cur = q.idx + 1;
+
+  const head = `<div class="quiz-head">
+      <b style="color:var(--ink)">${cur} / ${total}</b>
+      <div class="bar"><i style="width:${(cur / total * 100).toFixed(1)}%"></i></div>
+      <span class="score">得分 ${q.score}</span>
+    </div>`;
+
+  let body = '';
+  if (item.type === 'pic') {
+    body = `<div class="quiz-pic">${url ? `<img src="${url}" alt="">` : `<div class="img-missing">?</div>`}</div>
+            <div class="quiz-ask">这是哪个字？</div>`;
+  } else {
+    body = `<button class="speaker" id="spk">🔊</button>
+            <div class="quiz-ask">听一听，是哪个字？</div>`;
+  }
+
+  root.innerHTML = `<div class="quiz-wrap">
+    ${head}
+    <div class="quiz-main">
+      ${body}
+      <div class="opt-grid">
+        ${item.opts.map((o, i) => `<button class="opt" data-i="${i}">${esc(o.char)}</button>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  if (item.type === 'sound') {
+    const say = () => { Speech.warmUp(); Speech.speakAll([card.char], 0.7); };
+    const spk = $('#spk', root);
+    if (spk) spk.onclick = () => { Sfx.click(); say(); };
+    setTimeout(say, 260);
+  }
+
+  $$('.opt', root).forEach(b => {
+    b.onclick = () => answerQuestion(parseInt(b.dataset.i, 10), b);
+  });
+}
+
+async function answerQuestion(i, btn) {
+  const q = state.quiz;
+  if (!q || q.locked) return;
+  q.locked = true;
+
+  const item = q.list[q.idx];
+  const chosen = item.opts[i];
+  const ok = chosen && chosen.id === item.card.id;
+
+  $$('.opt').forEach((b, j) => {
+    b.disabled = true;
+    if (item.opts[j] && item.opts[j].id === item.card.id) b.classList.add('right');
+  });
+
+  if (ok) {
+    Sfx.right();
+    q.score += 10 * (q.combo >= 1 ? 2 : 1);
+    q.combo++;
+    q.correct++;
+  } else {
+    if (btn) btn.classList.add('wrong');
+    Sfx.wrong();
+    q.combo = 0;
+    q.wrong.push(item.card);
+    /* 答错后立刻读一遍正确字：必须在点击事件里同步触发，安卓才允许发声 */
+    Speech.warmUp();
+    Speech.speakAll([item.card.char], 0.85);
+  }
+
+  await updateCardStats(item.card, ok);
+
+  setTimeout(async () => {
+    if (!state.quiz) return;
+    q.idx++;
+    q.locked = false;
+    if (q.idx >= q.list.length) { q.done = true; Sfx.win(); }
+    await render();
+  }, 950);
+}
+
+function paintResult(root) {
+  const q = state.quiz;
+  const total = q.list.length;
+  const rate = pct(q.correct, total);
+  const wrongCards = q.wrong.slice(0, 12);
+
+  root.innerHTML = `<div class="quiz-wrap">
+    <div class="quiz-main">
+      <div style="font-size:52px">${rate >= 80 ? '🏆' : rate >= 50 ? '🌱' : '💪'}</div>
+      <div class="result-big">${q.score} 分</div>
+      <div class="result-sub">答对 ${q.correct} / ${total} 题 · 正确率 ${rate}%</div>
+      ${wrongCards.length
+      ? `<div class="row center" style="gap:8px">${wrongCards.map(c => `<span class="weak">${esc(c.char)}</span>`).join('')}</div>`
+      : `<div class="result-sub" style="color:var(--green);font-weight:800">全部答对，太棒了！</div>`}
+      <div class="row center">
+        ${q.wrong.length ? `<button class="btn" id="againWrong">复习错题</button>` : ''}
+        <button class="btn primary" id="again">再来一轮</button>
+        <button class="btn ghost" id="backLearn">回学习</button>
+      </div>
+    </div>
+  </div>`;
+
+  if ($('#againWrong')) $('#againWrong').onclick = () => startReview(q.wrong.slice());
+  $('#again').onclick = async () => { state.quiz = null; await render(); };
+  $('#backLearn').onclick = () => go('learn');
+}
+
+async function renderReview(root) {
+  await loadCards();
+  if (state.quiz && state.quiz.kind === 'review') { await paintQuestion(root); return; }
+
+  const now = Date.now();
+  const due = state.allCards
+    .filter(c => (c.dueAt || 0) <= now && (c.level || 0) < 5)
+    .sort((a, b) => (a.dueAt || 0) - (b.dueAt || 0))
+    .slice(0, 20);
+
+  if (!due.length) {
+    const next = state.allCards.filter(c => c.dueAt).sort((a, b) => a.dueAt - b.dueAt)[0];
+    root.innerHTML = `<div class="empty">
+      <div class="emoji">🌈</div>
+      <h3>今天的复习都完成啦</h3>
+      <p>${next ? `下一张在 ${new Date(next.dueAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 到期` : '去测验里练几轮吧'}</p>
+    </div>`;
+    return;
+  }
+
+  root.innerHTML = `<div class="quiz-wrap">
+    <div class="panel" style="text-align:center;padding:34px 24px">
+      <div style="font-size:54px">🔁</div>
+      <h3 style="justify-content:center;font-size:24px;margin:10px 0 6px">待复习 ${due.length} 个字</h3>
+      <p class="desc" style="margin:0 0 18px">这些字之前答错过，或者到了复习时间。答对一次就往后推一点。</p>
+      <div class="row center">
+        <button class="btn primary" id="startReviewBtn" style="height:76px;font-size:23px;padding:0 46px">开始复习</button>
+      </div>
+    </div>
+  </div>`;
+  $('#startReviewBtn').onclick = () => startReview(due);
+}
+
+async function startReview(cards) {
+  if (!cards || !cards.length) { toast('没有需要复习的字'); return; }
+  const list = buildQuestions(cards, cards.length);
+  state.quiz = {
+    kind: 'review', list, idx: 0, score: 0,
+    combo: 0, correct: 0, wrong: [], locked: false, done: false
+  };
+  state.view = 'review';
+  await render();
+}
+
+/* ===================== 15. 统计报告 ===================== */
+async function renderStats(root) {
+  await loadCards();
+  const all = state.allCards;
+  if (!all.length) {
+    root.innerHTML = `<div class="empty"><div class="emoji">📊</div><h3>还没有数据</h3><p>先添加一些字词吧</p></div>`;
+    return;
+  }
+
+  const mastered = all.filter(c => (c.level || 0) >= 3).length;
+  const learning = all.filter(c => { const l = c.level || 0; return l >= 1 && l < 3; }).length;
+  const fresh = all.length - mastered - learning;
+  const total = all.length || 1;
+  const a = mastered / total * 360;
+  const b = (mastered + learning) / total * 360;
+
+  const today = dayKey(Date.now());
+  const todayCards = all.filter(c => c.lastStudiedAt && dayKey(c.lastStudiedAt) === today);
+  const todayRight = todayCards.filter(c => (c.correctCount || 0) > 0).length;
+
+  /* 近 7 日 */
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const k = dayKey(d.getTime());
+    const cnt = all.filter(c => c.lastStudiedAt && dayKey(c.lastStudiedAt) === k).length;
+    days.push({ k, label: (d.getMonth() + 1) + '/' + d.getDate(), cnt });
+  }
+  const maxCnt = Math.max(1, ...days.map(d => d.cnt));
+
+  const weak = all.filter(c => (c.wrongCount || 0) > 0)
+    .sort((x, y) => (y.wrongCount || 0) - (x.wrongCount || 0)).slice(0, 10);
+
+  root.innerHTML = `<div style="max-width:960px;margin:0 auto">
+    <div class="panel">
+      <h3>📊 学习概况</h3>
+      <div class="stat-grid">
+        <div>
+          <div class="donut" style="background:conic-gradient(var(--green) 0 ${a}deg, var(--yellow) ${a}deg ${b}deg, #EDE3D5 ${b}deg 360deg)">
+            <div class="hole">${mastered}<small>已掌握 / 共 ${all.length}</small></div>
+          </div>
+          <div class="legend">
+            <span><i style="background:var(--green)"></i>已掌握 ${mastered} 个</span>
+            <span><i style="background:var(--yellow)"></i>学习中 ${learning} 个</span>
+            <span><i style="background:#EDE3D5"></i>还没开始 ${fresh} 个</span>
+          </div>
+        </div>
+        <div>
+          <div class="kpi" style="flex-direction:column">
+            <div class="box"><b>${todayCards.length}</b><span>今天学过的字</span></div>
+            <div class="box"><b>${pct(todayRight, todayCards.length)}%</b><span>今天有正确记录的比例</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>近 7 天学习量</h3>
+      <div class="bars">
+        ${days.map(d => `<div class="col"><i style="height:${Math.max(4, Math.round(d.cnt / maxCnt * 100))}%"></i><span>${d.label}</span></div>`).join('')}
+      </div>
+      <p class="hint" style="text-align:left">按每张卡最近一次学习时间统计</p>
+    </div>
+
+    <div class="panel">
+      <h3>需要多练的字</h3>
+      ${weak.length
+      ? `<div class="weak-list">${weak.map(c => `<div class="weak" data-card="${c.id}">${esc(c.char)}<small>错 ${c.wrongCount} 次</small></div>`).join('')}</div>`
+      : `<p class="desc">还没有错题，继续保持！</p>`}
+    </div>
+  </div>`;
+
+  $$('[data-card]', root).forEach(n => {
+    n.onclick = () => {
+      const idx = state.allCards.findIndex(c => c.id === n.dataset.card);
+      state.unitId = 'all';
+      if (idx >= 0) {
+        state.learnIndex = idx;
+        go('learn');
+      }
+    };
+  });
+}
+
+/* ===================== 16. 打印识字卡 ===================== */
+async function printCards(cards) {
+  if (!cards || !cards.length) { toast('没有可打印的字词'); return; }
+  const win = window.open('', '_blank');
+  if (!win) { toast('浏览器拦截了打印窗口，请允许弹窗后重试'); return; }
+  win.document.write('<p style="font-family:sans-serif;padding:24px">正在准备图片，请稍候…</p>');
+
+  const rows = [];
+  for (const c of cards) {
+    rows.push({ c, url: await imgURL(c.imageId) });
+  }
+
+  const cells = rows.map(({ c, url }) => `<div class="cell">
+      <div class="cp">${url ? `<img src="${url}" alt="">` : ''}</div>
+      <div class="ch">${esc(c.char)}</div>
+      <div class="py">${esc(c.pinyin || py(c.char))}</div>
+    </div>`).join('');
+
+  const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>识字卡打印</title>
+<style>
+  @page{size:A4 portrait;margin:10mm}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;color:#33302E}
+  .tip{font-size:12px;color:#888;margin:0 0 6px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}
+  .cell{
+    border:1px dashed #C9BBA6;border-radius:4mm;padding:3mm;text-align:center;
+    height:62mm;display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+    page-break-inside:avoid;break-inside:avoid;background:#fff;
+  }
+  .cp{height:34mm;display:flex;align-items:center;justify-content:center;width:100%}
+  .cp img{max-height:34mm;max-width:100%;object-fit:contain}
+  .ch{font-size:58px;font-weight:800;line-height:1}
+  .py{font-size:18px;color:#4FB8FF;font-weight:700}
+</style></head><body>
+<p class="tip">共 ${rows.length} 张 · 打印时请把缩放设为 100%、边距设为默认，虚线可裁切</p>
+<div class="grid">${cells}</div>
+</body></html>`;
+
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => { try { win.focus(); win.print(); } catch (e) { } }, 800);
+}
+
+/* ===================== 17. 内容管理 ===================== */
+let pendingFile = null;
+let importRows = [];
+let pendingFiles = new Map();   // 文件名 → File，供 CSV 匹配
+
+async function renderAdmin(root) {
+  await loadUnits();
+  await loadCards();
+  const unitOptions = state.units.map(u => `<option value="${u.id}">${esc(u.name)}</option>`).join('');
+
+  root.innerHTML = `<div style="max-width:1020px;margin:0 auto">
+
+    <div class="panel">
+      <h3>⚙️ 家长模式已开启</h3>
+      <div class="row between">
+        <span class="desc" style="margin:0">新增、修改、导入导出都在这里。5 分钟无操作会自动锁定。</span>
+        <div class="row">
+          <button class="btn sm" id="voiceCheck">🔈 语音自检</button>
+          <button class="btn sm" id="setPwd">${localStorage.getItem('parentPwd') ? '修改密码' : '设置密码'}</button>
+          <button class="btn sm" id="lockNow">立即锁定</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>📚 主题单元</h3>
+      <div id="unitList"></div>
+      <div class="row" style="margin-top:12px">
+        <div class="field" style="max-width:220px"><span>新单元名称</span><input id="newUnitName" placeholder="例如：水果"></div>
+        <div class="field" style="max-width:130px"><span>颜色</span><input id="newUnitColor" type="color" value="#4FB8FF" style="padding:4px;height:46px"></div>
+        <button class="btn primary" id="addUnit" style="align-self:flex-end">新增单元</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>➕ 逐条添加</h3>
+      <div class="row" style="align-items:flex-start">
+        <div class="field" style="flex:0 0 200px">
+          <span>图片</span>
+          <div class="drop" id="addDrop" style="padding:18px 10px;font-size:15px">点击选图</div>
+          <input type="file" id="addFile" accept="image/*" hidden>
+        </div>
+        <div class="field"><span>字（必填，1 个汉字）</span><input id="fChar" maxlength="1" placeholder="苹"></div>
+        <div class="field"><span>词（选填）</span><input id="fWord" placeholder="苹果"></div>
+        <div class="field"><span>拼音（留空自动）</span><input id="fPinyin" placeholder="píng"></div>
+        <div class="field"><span>单元</span><select id="fUnit">${unitOptions}</select></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div class="field"><span>备注（选填）</span><input id="fNote" placeholder="例如：水果类"></div>
+        <button class="btn primary" id="addSave" style="align-self:flex-end">保存并继续</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>📥 批量导入</h3>
+      <p class="desc">文件名写成「字_词_拼音」最准确，例如 <b>苹_苹果_píng.jpg</b>；只写「苹果.jpg」会自动把首字「苹」当字，导入后可以核对修改。</p>
+      <div class="drop" id="dropZone">
+        <b>把图片拖到这里</b><br>
+        也可以拖入整个文件夹，或下面点按钮选择
+      </div>
+      <input type="file" id="fileInput" accept="image/*" multiple hidden>
+      <input type="file" id="dirInput" webkitdirectory directory multiple hidden>
+      <input type="file" id="jsonInput" accept=".json,application/json" hidden>
+      <input type="file" id="csvInput" accept=".csv,text/csv" hidden>
+      <div class="row" style="margin-top:14px">
+        <button class="btn" id="pickFiles">选择图片</button>
+        <button class="btn" id="pickDir">选择文件夹</button>
+        <button class="btn" id="pickCsv">导入 CSV</button>
+        <button class="btn" id="pickJson">导入 JSON 备份</button>
+      </div>
+      <div id="importPreview" style="margin-top:16px"></div>
+    </div>
+
+    <div class="panel">
+      <h3>💾 数据备份</h3>
+      <p class="desc">导出后是一个 JSON 文件，里面包含全部字词和图片，可以在别的设备上导入还原。</p>
+      <div class="row">
+        <button class="btn primary" id="exportAll">导出全部数据</button>
+        <button class="btn" id="printAll">打印识字卡</button>
+        <button class="btn" id="printUnit">只打印当前单元</button>
+        <button class="btn" id="addSample">载入示例字</button>
+        <button class="btn danger" id="wipeAll" style="margin-left:auto">清空所有数据</button>
+      </div>
+      <p class="hint" style="text-align:left">当前共 ${state.allCards.length} 个字词、${state.units.length} 个单元</p>
+    </div>
+
+    <div class="panel">
+      <h3>📋 全部字词 <span style="font-size:14px;color:var(--muted);font-weight:400">（点行可编辑，改完按回车或点保存）</span></h3>
+      <div style="max-height:420px;overflow-y:auto">
+        <table class="tb">
+          <thead><tr><th style="width:64px">图</th><th style="width:80px">字</th><th>词</th><th>拼音</th><th>单元</th><th style="width:130px">操作</th></tr></thead>
+          <tbody id="cardRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+
+  renderUnitList(root, unitOptions);
+  renderCardRows(root, unitOptions);
+  bindAdmin(root);
+}
+
+function renderUnitList(root, unitOptions) {
+  const box = $('#unitList', root);
+  box.innerHTML = state.units.map(u => `<div class="row" style="margin-bottom:8px">
+    <input class="btn" style="flex:1;text-align:left;background:#FFFDF8;font-weight:700" data-uname="${u.id}" value="${esc(u.name)}">
+    <input type="color" value="${u.color || '#9A9086'}" data-ucolor="${u.id}" style="width:52px;height:52px;border:none;background:none;padding:2px">
+    <span style="color:var(--muted);font-size:14px;min-width:70px">${state.allCards.filter(c => c.unitId === u.id).length} 个字</span>
+    <button class="btn sm danger" data-udel="${u.id}">删除</button>
+  </div>`).join('') || '<p class="desc">还没有单元</p>';
+
+  $$('[data-uname]', box).forEach(inp => {
+    inp.onchange = async () => {
+      const u = state.units.find(x => x.id === inp.dataset.uname);
+      if (!u) return;
+      u.name = inp.value.trim() || '未命名';
+      await DB.put('units', u);
+      await loadUnits(); render();
+    };
+  });
+  $$('[data-ucolor]', box).forEach(inp => {
+    inp.onchange = async () => {
+      const u = state.units.find(x => x.id === inp.dataset.ucolor);
+      if (!u) return;
+      u.color = inp.value;
+      await DB.put('units', u);
+      await loadUnits(); render();
+    };
+  });
+  $$('[data-udel]', box).forEach(b => {
+    b.onclick = async () => {
+      const id = b.dataset.udel;
+      const u = state.units.find(x => x.id === id);
+      if (!u) return;
+      const n = state.allCards.filter(c => c.unitId === id).length;
+      const choice = await chooseBox(`删除单元「${u.name}」`, n
+        ? [`里面的 ${n} 个字词移到「未分组」`, '连同字词一起删除', '取消']
+        : ['确定删除', '取消'], ['move', 'all', 'cancel']);
+      if (!choice || choice === 'cancel') return;
+      if (choice === 'all') {
+        for (const c of state.allCards.filter(c => c.unitId === id)) {
+          if (c.imageId) { await DB.del('images', c.imageId).catch(() => { }); urlCache.delete(c.imageId); }
+          await DB.del('cards', c.id).catch(() => { });
+        }
+      } else {
+        for (const c of state.allCards.filter(c => c.unitId === id)) {
+          c.unitId = 'u_default';
+          await DB.put('cards', c);
+        }
+      }
+      await DB.del('units', id);
+      if (state.unitId === id) state.unitId = 'all';
+      await loadUnits(); await loadCards();
+      render();
+      toast('单元已删除');
+    };
+  });
+}
+
+function renderCardRows(root, unitOptions) {
+  const tb = $('#cardRows', root);
+  if (!state.allCards.length) { tb.innerHTML = `<tr><td colspan="6" style="color:var(--muted);padding:18px">还没有字词</td></tr>`; return; }
+  tb.innerHTML = state.allCards.map(c => `<tr data-row="${c.id}">
+    <td><div class="thum" data-thum="${c.id}">图</div></td>
+    <td><input data-e="char" value="${esc(c.char)}" maxlength="1"></td>
+    <td><input data-e="word" value="${esc(c.word || '')}"></td>
+    <td><input data-e="pinyin" value="${esc(c.pinyin || '')}"></td>
+    <td><select data-e="unitId">${unitOptions}</select></td>
+    <td>
+      <button class="btn tiny" data-save="${c.id}">保存</button>
+      <button class="btn tiny danger" data-del="${c.id}">删除</button>
+    </td>
+  </tr>`).join('');
+
+  /* 缩略图 */
+  state.allCards.forEach(async c => {
+    const holder = tb.querySelector(`[data-thum="${c.id}"]`);
+    if (!holder) return;
+    const url = await imgURL(c.imageId);
+    if (url) holder.outerHTML = `<img src="${url}" alt="">`;
+  });
+
+  state.allCards.forEach(c => {
+    const row = tb.querySelector(`[data-row="${c.id}"]`);
+    if (!row) return;
+    const sel = row.querySelector('[data-e="unitId"]');
+    if (sel) sel.value = c.unitId || 'u_default';
+  });
+
+  $$('[data-save]', tb).forEach(b => {
+    b.onclick = async () => {
+      const id = b.dataset.save;
+      const c = state.allCards.find(x => x.id === id);
+      const row = tb.querySelector(`[data-row="${id}"]`);
+      if (!c || !row) return;
+      const ch = row.querySelector('[data-e="char"]').value.trim();
+      if (!/^[\u4e00-\u9fa5]$/.test(ch)) { toast('「字」必须填 1 个汉字'); return; }
+      c.char = ch;
+      c.word = row.querySelector('[data-e="word"]').value.trim();
+      c.pinyin = row.querySelector('[data-e="pinyin"]').value.trim() || py(ch);
+      c.unitId = row.querySelector('[data-e="unitId"]').value;
+      await DB.put('cards', c);
+      await loadCards();
+      toast('已保存');
+    };
+  });
+
+  $$('[data-del]', tb).forEach(b => {
+    b.onclick = async () => {
+      const id = b.dataset.del;
+      const c = state.allCards.find(x => x.id === id);
+      if (!c) return;
+      if (!await confirmBox(`删除「${c.char}」这张卡？`, '删除', '取消')) return;
+      if (c.imageId) { await DB.del('images', c.imageId).catch(() => { }); urlCache.delete(c.imageId); }
+      await DB.del('cards', id);
+      await loadCards();
+      render();
+      toast('已删除');
+    };
+  });
+}
+
+function bindAdmin(root) {
+  $('#voiceCheck').onclick = () => { Sfx.click(); voiceCheck(); };
+  $('#setPwd').onclick = async () => {
+    const v = await inputBox('设置 4 位数字密码（仅防误触）', '4 位数字', true);
+    if (!v) return;
+    if (!/^\d{4}$/.test(v)) { toast('请输入 4 位数字'); return; }
+    localStorage.setItem('parentPwd', v);
+    toast('密码已设置');
+    render();
+  };
+  $('#lockNow').onclick = () => {
+    state.parent = false;
+    state.view = 'learn';
+    render();
+    toast('已锁定家长模式');
+  };
+
+  $('#addUnit').onclick = async () => {
+    const name = $('#newUnitName').value.trim();
+    if (!name) { toast('请填写单元名称'); return; }
+    await DB.put('units', {
+      id: uid('u'), name, color: $('#newUnitColor').value,
+      order: state.units.length, createdAt: Date.now()
+    });
+    await loadUnits();
+    render();
+    toast('单元已添加');
+  };
+
+  /* 逐条添加 */
+  const drop = $('#addDrop');
+  drop.onclick = () => $('#addFile').click();
+  $('#addFile').onchange = (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    pendingFile = f;
+    const u = URL.createObjectURL(f);
+    drop.innerHTML = `<img src="${u}" style="max-width:100%;max-height:110px;object-fit:contain">`;
+  };
+
+  $('#addSave').onclick = async () => {
+    const ch = $('#fChar').value.trim();
+    if (!/^[\u4e00-\u9fa5]$/.test(ch)) { toast('「字」必须填 1 个汉字'); return; }
+    if (!pendingFile) { toast('请先选一张图片'); return; }
+    Sfx.click();
+    try {
+      const imageId = await saveImage(pendingFile);
+      const maxOrder = state.allCards.reduce((m, c) => Math.max(m, c.order || 0), 0);
+      await DB.put('cards', {
+        id: uid('c'), char: ch,
+        word: $('#fWord').value.trim(),
+        pinyin: $('#fPinyin').value.trim() || py(ch),
+        unitId: $('#fUnit').value,
+        imageId, note: $('#fNote').value.trim(),
+        order: maxOrder + 1, createdAt: Date.now(),
+        needReview: false, viewCount: 0, correctCount: 0, wrongCount: 0,
+        level: 0, dueAt: 0, lastStudiedAt: 0, lastWrongAt: 0
+      });
+      pendingFile = null;
+      $('#fChar').value = ''; $('#fWord').value = ''; $('#fPinyin').value = ''; $('#fNote').value = '';
+      drop.innerHTML = '点击选图';
+      await loadCards();
+      render();
+      toast('已添加，继续添加下一个');
+    } catch (e) {
+      toast('保存失败：' + (e.message || e));
+    }
+  };
+
+  /* 批量导入 */
+  const zone = $('#dropZone');
+  zone.onclick = () => $('#fileInput').click();
+  zone.ondragover = e => { e.preventDefault(); zone.classList.add('over'); };
+  zone.ondragleave = () => zone.classList.remove('over');
+  zone.ondrop = async e => {
+    e.preventDefault();
+    zone.classList.remove('over');
+    try {
+      const files = await filesFromDataTransfer(e.dataTransfer);
+      handleImportFiles(files);
+    } catch (err) { toast('读取失败：' + (err.message || err)); }
+  };
+  $('#fileInput').onchange = e => handleImportFiles(Array.from(e.target.files));
+  $('#dirInput').onchange = e => handleImportFiles(Array.from(e.target.files));
+  $('#pickFiles').onclick = () => $('#fileInput').click();
+  $('#pickDir').onclick = () => $('#dirInput').click();
+  $('#pickCsv').onclick = () => $('#csvInput').click();
+  $('#pickJson').onclick = () => $('#jsonInput').click();
+  $('#csvInput').onchange = async e => {
+    const f = e.target.files[0];
+    if (f) await importCSV(f);
+    e.target.value = '';
+  };
+  $('#jsonInput').onchange = async e => {
+    const f = e.target.files[0];
+    if (f) await importJSON(f);
+    e.target.value = '';
+  };
+
+  /* 备份 */
+  $('#exportAll').onclick = exportAll;
+  $('#printAll').onclick = () => printCards(state.allCards);
+  $('#printUnit').onclick = () => printCards(state.cards);
+  $('#addSample').onclick = () => loadSamples();
+  $('#wipeAll').onclick = wipeAll;
+
+  renderImportPreview(root);
+}
+
+/* ===================== 18. 导入解析 ===================== */
+function parseName(filename) {
+  const base = String(filename).replace(/\.[^.]+$/, '').trim();
+  const parts = base.split(/[_\-#]+/).filter(Boolean);
+  let char = '', word = '', pinyin = '', needReview = false;
+
+  if (parts.length === 1) {
+    word = parts[0];
+    char = word.slice(0, 1);
+    needReview = true;
+  } else if (parts.length === 2) {
+    if (parts[0].length === 1) { char = parts[0]; word = parts[1]; needReview = false; }
+    else { word = parts[0]; char = word.slice(0, 1); pinyin = parts[1]; needReview = true; }
+  } else {
+    char = parts[0]; word = parts[1]; pinyin = parts[2]; needReview = false;
+  }
+  if (!/^[\u4e00-\u9fa5]$/.test(char)) char = (word || '').slice(0, 1);
+  return { char, word, pinyin, needReview };
+}
+
+async function filesFromDataTransfer(dt) {
+  const out = [];
+  const items = Array.from(dt.items || []);
+  if (!items.length) {
+    Array.from(dt.files || []).forEach(f => out.push(f));
+    return out;
+  }
+  const walk = (entry) => new Promise(res => {
+    if (!entry) return res();
+    if (entry.isFile) {
+      entry.file(f => { out.push(f); res(); }, () => res());
+    } else if (entry.isDirectory) {
+      const rd = entry.createReader();
+      const readBatch = () => rd.readEntries(async ents => {
+        if (!ents.length) return res();
+        for (const e of ents) await walk(e);
+        readBatch();
+      }, () => res());
+      readBatch();
+    } else res();
+  });
+  for (const it of items) {
+    if (it.kind !== 'file') continue;
+    const entry = it.webkitGetAsEntry && it.webkitGetAsEntry();
+    if (entry) await walk(entry);
+    else if (it.getAsFile) {
+      const f = it.getAsFile();
+      if (f) out.push(f);
+    }
+  }
+  return out;
+}
+
+function handleImportFiles(files) {
+  const imgs = (files || []).filter(f => /^image\//.test(f.type) || /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(f.name));
+  if (!imgs.length) { toast('没有找到图片文件'); return; }
+  imgs.forEach(f => pendingFiles.set(f.name, f));
+  const defUnit = state.unitId === 'all' ? (state.units[0] ? state.units[0].id : 'u_default') : state.unitId;
+
+  importRows = imgs.map(f => {
+    const p = parseName(f.name);
+    return {
+      file: f, name: f.name,
+      url: URL.createObjectURL(f),
+      char: p.char, word: p.word || p.char,
+      pinyin: p.pinyin || py(p.char),
+      unitId: defUnit, needReview: p.needReview
+    };
+  });
+  render(`__admin_import__`);
+}
+
+function renderImportPreview(root) {
+  const box = $('#importPreview', root || document);
+  if (!box) return;
+  if (!importRows.length) { box.innerHTML = ''; return; }
+  const need = importRows.filter(r => r.needReview).length;
+  const unitOptions = (id) => state.units.map(u => `<option value="${u.id}" ${u.id === id ? 'selected' : ''}>${esc(u.name)}</option>`).join('');
+
+  box.innerHTML = `
+    <div class="row between" style="margin-bottom:10px">
+      <b style="font-size:17px">待导入 ${importRows.length} 张</b>
+      ${need ? `<span style="color:var(--orange);font-size:14px;font-weight:700">其中 ${need} 张自动取了首字，请核对</span>` : ''}
+    </div>
+    <div style="max-height:340px;overflow-y:auto">
+      <table class="tb">
+        <thead><tr><th style="width:64px">图</th><th style="width:76px">字</th><th>词</th><th style="width:120px">拼音</th><th style="width:140px">单元</th><th style="width:60px">移除</th></tr></thead>
+        <tbody>
+        ${importRows.map((r, i) => `<tr>
+          <td><img src="${r.url}" alt=""></td>
+          <td><input data-i="${i}" data-k="char" maxlength="1" value="${esc(r.char)}"></td>
+          <td><input data-i="${i}" data-k="word" value="${esc(r.word)}"></td>
+          <td><input data-i="${i}" data-k="pinyin" value="${esc(r.pinyin)}"></td>
+          <td><select data-i="${i}" data-k="unitId">${unitOptions(r.unitId)}</select></td>
+          <td><button class="btn tiny danger" data-rm="${i}">移除</button></td>
+        </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="row end" style="margin-top:12px">
+      <button class="btn ghost" id="cancelImport">取消导入</button>
+      <button class="btn primary" id="confirmImport">确认导入 ${importRows.length} 条</button>
+    </div>`;
+
+  $$('[data-k]', box).forEach(inp => {
+    inp.onchange = () => {
+      const i = +inp.dataset.i, k = inp.dataset.k;
+      if (!importRows[i]) return;
+      importRows[i][k] = inp.value;
+      if (k === 'char') importRows[i].needReview = false;
+    };
+  });
+  $$('[data-rm]', box).forEach(b => {
+    b.onclick = () => {
+      const i = +b.dataset.rm;
+      try { URL.revokeObjectURL(importRows[i].url); } catch (e) { }
+      importRows.splice(i, 1);
+      render('__admin_import__');
+    };
+  });
+  $('#cancelImport').onclick = () => {
+    importRows.forEach(r => { try { URL.revokeObjectURL(r.url); } catch (e) { } });
+    importRows = [];
+    render();
+  };
+  $('#confirmImport').onclick = () => confirmImport();
+}
+
+async function confirmImport() {
+  if (!importRows.length) return;
+  const rows = importRows.slice();
+  const btn = $('#confirmImport');
+  if (btn) { btn.disabled = true; btn.textContent = '正在导入…'; }
+
+  let ok = 0, fail = 0;
+  const maxOrder = state.allCards.reduce((m, c) => Math.max(m, c.order || 0), 0);
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    try {
+      const ch = (r.char || '').slice(0, 1);
+      if (!/^[\u4e00-\u9fa5]$/.test(ch)) throw new Error('字不合法');
+      const imageId = await saveImage(r.file);
+      await DB.put('cards', {
+        id: uid('c'), char: ch,
+        word: r.word || ch,
+        pinyin: r.pinyin || py(ch),
+        unitId: r.unitId || 'u_default',
+        imageId, note: '', order: maxOrder + i + 1,
+        createdAt: Date.now(), needReview: false,
+        viewCount: 0, correctCount: 0, wrongCount: 0,
+        level: 0, dueAt: 0, lastStudiedAt: 0, lastWrongAt: 0
+      });
+      ok++;
+    } catch (e) { fail++; }
+    if (btn) btn.textContent = `正在导入 ${i + 1}/${rows.length}…`;
+  }
+
+  importRows.forEach(r => { try { URL.revokeObjectURL(r.url); } catch (e) { } });
+  importRows = [];
+  await loadCards();
+  render();
+  toast(`导入完成：成功 ${ok} 条${fail ? `，失败 ${fail} 条` : ''}`);
+}
+
+/* ===================== 19. CSV / JSON / 备份 ===================== */
+async function importCSV(file) {
+  try {
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (!lines.length) { toast('CSV 是空的'); return; }
+    const rows = lines.map(l => l.split(',').map(s => s.trim().replace(/^"|"$/g, '')));
+    const start = /字|char/i.test(rows[0][0] || '') ? 1 : 0;
+    const defUnit = state.unitId === 'all' ? (state.units[0] ? state.units[0].id : 'u_default') : state.unitId;
+
+    importRows = [];
+    for (let i = start; i < rows.length; i++) {
+      const [ch, word, pinyin, unitName2, imgName] = rows[i];
+      if (!ch) continue;
+      const fileHit = imgName ? pendingFiles.get(imgName) : null;
+      if (!fileHit) continue;
+      const u = state.units.find(x => x.name === (unitName2 || '')) || { id: defUnit };
+      importRows.push({
+        file: fileHit, name: imgName,
+        url: URL.createObjectURL(fileHit),
+        char: ch.slice(0, 1), word: word || ch,
+        pinyin: pinyin || py(ch.slice(0, 1)),
+        unitId: u.id, needReview: false
+      });
+    }
+    if (!importRows.length) {
+      toast('CSV 里没有匹配到图片，请先拖入同批图片再导入 CSV');
+      return;
+    }
+    render('__admin_import__');
+    toast(`解析到 ${importRows.length} 条，请核对后确认`);
+  } catch (e) {
+    toast('CSV 解析失败：' + (e.message || e));
+  }
+}
+
+function blobToDataURL(blob) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => rej(fr.error);
+    fr.readAsDataURL(blob);
+  });
+}
+function dataURLtoBlob(dataURL) {
+  const [head, b64] = String(dataURL).split(',');
+  const mime = (head.match(/:(.*?);/) || [])[1] || 'image/jpeg';
+  const bin = atob(b64 || '');
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+function downloadText(text, filename) {
+  const blob = new Blob([text], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+
+async function exportAll() {
+  try {
+    const units = await DB.getAll('units');
+    const cards = await DB.getAll('cards');
+    const imgs = await DB.getAll('images');
+    const images = {};
+    for (const it of imgs) {
+      if (!it.blob) continue;
+      images[it.id] = await blobToDataURL(it.blob);
+    }
+    const data = {
+      app: 'kanTuShiZi', version: 1,
+      exportedAt: new Date().toISOString(),
+      units, cards, images
+    };
+    const text = JSON.stringify(data);
+    const mb = (text.length / 1024 / 1024).toFixed(1);
+    downloadText(text, `看图识字备份_${dayKey(Date.now())}.json`);
+    toast(`已导出，约 ${mb} MB`);
+  } catch (e) {
+    toast('导出失败：' + (e.message || e));
+  }
+}
+
+async function importJSON(file) {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (data.app !== 'kanTuShiZi') { toast('这不是本应用的备份文件'); return; }
+    if (!data.units || !data.cards) { toast('备份文件不完整'); return; }
+    if (!await confirmBox(`导入会合并到现有数据，同 ID 的会被覆盖。继续？`, '导入', '取消')) return;
+
+    const units = data.units || [];
+    const cards = data.cards || [];
+    const images = data.images || {};
+
+    await new Promise((res, rej) => {
+      let t;
+      try {
+        t = DB._db.transaction(['units', 'cards', 'images'], 'readwrite');
+      } catch (e) { return rej(e); }
+      const su = t.objectStore('units'), sc = t.objectStore('cards'), si = t.objectStore('images');
+      units.forEach(u => su.put(u));
+      cards.forEach(c => sc.put(c));
+      Object.keys(images).forEach(id => {
+        try { si.put({ id, blob: dataURLtoBlob(images[id]) }); } catch (e) { }
+      });
+      t.oncomplete = () => res(true);
+      t.onerror = () => rej(t.error);
+    });
+
+    await loadUnits();
+    await loadCards();
+    render();
+    toast(`导入完成：${cards.length} 个字词`);
+  } catch (e) {
+    toast('导入失败：' + (e.message || e));
+  }
+}
+
+async function wipeAll() {
+  if (!await confirmBox('这会删除全部字词和图片，确定吗？', '继续', '取消')) return;
+  const v = await inputBox('请输入「确认删除」四个字', '确认删除');
+  if (v !== '确认删除') { toast('输入不匹配，已取消'); return; }
+  for (const s of ['cards', 'images', 'strokeCache']) await DB.clear(s).catch(() => { });
+  await DB.clear('units').catch(() => { });
+  urlCache.clear();
+  await loadUnits();
+  await loadCards();
+  state.unitId = 'all';
+  state.learnIndex = 0;
+  render();
+  toast('已清空全部数据');
+}
+
+/* ===================== 20. 示例数据 ===================== */
+const SAMPLE_SVGS = {
+  '苹果': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFF6EA"/><path d="M100 64c-22-16-58-8-58 38 0 42 32 62 58 62s58-20 58-62c0-46-36-54-58-38z" fill="#FF5A5F"/><path d="M100 66c0-14 7-24 20-28" stroke="#8B5E3C" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M104 56c9-13 26-15 34-7-4 11-19 18-34 7z" fill="#7BD88F"/></svg>`,
+  '香蕉': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFF6EA"/><path d="M48 52q4 76 74 96 30 8 48-14-28 8-48-4-44-22-52-80z" fill="#FFD84D"/><path d="M48 52q-8-12 4-18 10-4 12 8" stroke="#C9A227" stroke-width="7" fill="none" stroke-linecap="round"/></svg>`,
+  '猫': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFF6EA"/><path d="M52 74 L48 34 L86 54 Z" fill="#F5A65B"/><path d="M148 74 L152 34 L114 54 Z" fill="#F5A65B"/><circle cx="100" cy="106" r="54" fill="#F7B267"/><circle cx="82" cy="96" r="7" fill="#33302E"/><circle cx="118" cy="96" r="7" fill="#33302E"/><path d="M100 112 l-8 6 h16z" fill="#FF9EB5"/><path d="M92 126 q8 10 16 0" stroke="#33302E" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M32 100h26M32 112h26M142 100h26M142 112h26" stroke="#D98B3A" stroke-width="4" stroke-linecap="round"/></svg>`,
+  '狗': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFF6EA"/><ellipse cx="54" cy="94" rx="16" ry="32" fill="#A87C5A"/><ellipse cx="146" cy="94" rx="16" ry="32" fill="#A87C5A"/><circle cx="100" cy="108" r="52" fill="#C89F7B"/><circle cx="84" cy="100" r="6" fill="#33302E"/><circle cx="116" cy="100" r="6" fill="#33302E"/><ellipse cx="100" cy="124" rx="12" ry="9" fill="#33302E"/><path d="M100 133v10M100 143q-12 8-20 0M100 143q12 8 20 0" stroke="#33302E" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`,
+  '雨伞': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFF6EA"/><path d="M28 102a72 72 0 0 1 144 0z" fill="#5FA8F5"/><path d="M28 102q18 14 36 0 18 14 36 0 18 14 36 0 18 14 36 0" fill="#7BBBF7"/><path d="M100 102v50q0 18 20 18t20-18" stroke="#8B5E3C" stroke-width="8" fill="none" stroke-linecap="round"/></svg>`,
+  '月亮': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFF6EA"/><path d="M126 28a72 72 0 1 0 0 144 58 58 0 1 1 0-144z" fill="#FFD166"/><circle cx="154" cy="66" r="6" fill="#FFF6EA"/></svg>`,
+  '太阳': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFF6EA"/><circle cx="100" cy="100" r="40" fill="#FFC93C"/><g stroke="#FFB020" stroke-width="8" stroke-linecap="round"><path d="M100 34v16M100 150v16M34 100h16M150 100h16M52 52l12 12M136 136l12 12M148 52l-12 12M64 136l-12 12"/></g></svg>`,
+  '花': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFF6EA"/><path d="M100 122v52" stroke="#5AA85E" stroke-width="8" stroke-linecap="round"/><path d="M100 150q-30-6-34-30 30 0 34 30z" fill="#7BD88F"/><g fill="#FF9EB5"><circle cx="100" cy="48" r="20"/><circle cx="138" cy="88" r="20"/><circle cx="100" cy="128" r="20"/><circle cx="62" cy="88" r="20"/></g><circle cx="100" cy="88" r="19" fill="#FFD166"/></svg>`,
+  '树': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#FFF6EA"/><rect x="92" y="112" width="16" height="62" rx="6" fill="#8B5E3C"/><circle cx="100" cy="82" r="44" fill="#7BD88F"/><circle cx="68" cy="104" r="28" fill="#6AC97E"/><circle cx="132" cy="104" r="28" fill="#6AC97E"/></svg>`
+};
+
+const SAMPLES = [
+  { ch: '苹', word: '苹果', unit: '水果', color: '#FF5A5F', key: '苹果' },
+  { ch: '香', word: '香蕉', unit: '水果', color: '#FF5A5F', key: '香蕉' },
+  { ch: '猫', word: '猫', unit: '动物', color: '#F7B267', key: '猫' },
+  { ch: '狗', word: '狗', unit: '动物', color: '#F7B267', key: '狗' },
+  { ch: '伞', word: '雨伞', unit: '生活', color: '#5FA8F5', key: '雨伞' },
+  { ch: '月', word: '月亮', unit: '自然', color: '#FFD166', key: '月亮' },
+  { ch: '花', word: '花', unit: '植物', color: '#FF9EB5', key: '花' },
+  { ch: '树', word: '树', unit: '植物', color: '#7BD88F', key: '树' }
+];
+
+async function loadSamples() {
+  try {
+    const unitMap = {};
+    for (const s of SAMPLES) {
+      if (!unitMap[s.unit]) {
+        const exist = state.units.find(u => u.name === s.unit);
+        if (exist) { unitMap[s.unit] = exist.id; }
+        else {
+          const u = {
+            id: uid('u'), name: s.unit, color: s.color,
+            order: state.units.length + Object.keys(unitMap).length, createdAt: Date.now()
+          };
+          await DB.put('units', u);
+          unitMap[s.unit] = u.id;
+        }
+      }
+    }
+    await loadUnits();
+
+    let order = state.allCards.reduce((m, c) => Math.max(m, c.order || 0), 0);
+    for (const s of SAMPLES) {
+      const svg = SAMPLE_SVGS[s.key];
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const imageId = uid('img');
+      await DB.put('images', { id: imageId, blob });
+      order++;
+      await DB.put('cards', {
+        id: uid('c'), char: s.ch, word: s.word, pinyin: py(s.ch),
+        unitId: unitMap[s.unit], imageId, note: '示例',
+        order, createdAt: Date.now(), needReview: false,
+        viewCount: 0, correctCount: 0, wrongCount: 0,
+        level: 0, dueAt: 0, lastStudiedAt: 0, lastWrongAt: 0
+      });
+    }
+    await loadCards();
+    state.unitId = 'all';
+    state.view = 'learn';
+    state.learnIndex = 0;
+    render();
+    toast('示例字已载入，点图片听读音');
+  } catch (e) {
+    toast('载入示例失败：' + (e.message || e));
+  }
+}
+
+/* ===================== 21. 引导页 ===================== */
+function guideHTML() {
+  return `<div class="guide">
+    <h2>看图识字，一起玩 🍎</h2>
+    <p class="sub">先用示例玩一下，或者导入你自己的图片和字词。<br>建议：把每张图命名成「苹_苹果_píng.jpg」，导入时字、词、拼音都会自动填好。</p>
+    <div class="choices">
+      <div class="choice" data-act="demo"><div class="ic">✨</div><b>载入 8 个示例字</b><span>苹果、小猫、雨伞…<br>马上就能开始</span></div>
+      <div class="choice" data-act="add"><div class="ic">➕</div><b>逐条添加</b><span>一张图配一个字<br>慢慢加，慢慢学</span></div>
+      <div class="choice" data-act="import"><div class="ic">📥</div><b>批量导入图片</b><span>一次拖入一批图<br>按文件名自动生成</span></div>
+    </div>
+  </div>`;
+}
+
+function bindGuide(root) {
+  $$('[data-act]', root).forEach(node => {
+    node.onclick = async () => {
+      Sfx.click();
+      const act = node.dataset.act;
+      if (act === 'demo') { await loadSamples(); return; }
+      await unlockParent();
+    };
+  });
+}
+
+/* ===================== 22. 多选弹窗 ===================== */
+function chooseBox(title, options, values) {
+  return new Promise(res => {
+    const ov = showModal(`<div class="sheet small">
+      <h3>${esc(title)}</h3>
+      <div class="row center" style="flex-direction:column;gap:10px">
+        ${options.map((t, i) => `<button class="btn ${i === 0 ? 'primary' : i === options.length - 1 ? 'ghost' : ''}" style="width:100%" data-v="${values[i]}">${esc(t)}</button>`).join('')}
+      </div></div>`);
+    $$('[data-v]', ov).forEach(b => {
+      b.onclick = () => { closeModal(ov); res(b.dataset.v); };
+    });
+  });
+}
+
+/* ===================== 23. 启动 ===================== */
+function refreshMuteBtn() {
+  const b = $('#muteBtn');
+  if (b) b.textContent = Sfx.muted ? '🔇 声音已关' : '🔊 声音已开';
+}
+function toggleMute() {
+  Sfx.muted = !Sfx.muted;
+  Speech.muted = Sfx.muted;
+  localStorage.setItem('muted', Sfx.muted ? '1' : '0');
+  refreshMuteBtn();
+  if (!Sfx.muted) Sfx.click();
+}
+
+(async function boot() {
+  Sfx.muted = localStorage.getItem('muted') === '1';
+  Speech.muted = Sfx.muted;
+  refreshMuteBtn();
+  $('#muteBtn').onclick = toggleMute;
+
+  try {
+    await DB.open();
+  } catch (e) {
+    DB.ok = false;
+    $('#banner').innerHTML = `<div class="banner">当前浏览器无法保存数据（可能是隐私模式），这次添加的内容退出后会丢失</div>`;
+    console.error('IndexedDB 打开失败', e);
+  }
+
+  try {
+    await loadUnits();
+    await loadCards();
+  } catch (e) { console.error(e); }
+
+  await render();
+  bindAvatar();
+  document.addEventListener('pointerdown', touchIdle);
+  /* 首次触摸时静默唤醒语音引擎：安卓设备常见"第一次点没声音" */
+  document.addEventListener('pointerdown', () => Speech.warmUp(), { once: true, capture: true });
+  Speech.init();
+
+  /* 依赖库异步加载，成功后重绘一次让拼音生效 */
+  bootLibs().then(async () => {
+    if (!LIBS.hw) console.warn('笔画库未加载，笔顺将降级为静态字形');
+    if (!LIBS.py) console.warn('拼音库未加载，拼音需要手动填写');
+    if (LIBS.py) await render();
+  });
+})();
+</script>
+</body>
+</html>
